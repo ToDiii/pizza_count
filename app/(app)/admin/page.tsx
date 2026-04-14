@@ -21,7 +21,7 @@ export default async function AdminPage({
   const page = Math.max(1, Number(params?.page ?? 1));
   const skip = (page - 1) * ENTRIES_PER_PAGE;
 
-  const [users, entries, totalEntries] = await Promise.all([
+  const [users, entries, totalEntries, pizzaTypeOptions, locationOptions] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
       select: {
@@ -36,13 +36,18 @@ export default async function AdminPage({
     prisma.pizzaEntry.findMany({
       skip,
       take: ENTRIES_PER_PAGE,
-      orderBy: { createdAt: "desc" },
+      orderBy: { date: "desc" },
       include: { user: { select: { name: true, avatar: true } } },
     }),
     prisma.pizzaEntry.count(),
+    prisma.pizzaTypeOption.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.locationOption.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
   const totalPages = Math.ceil(totalEntries / ENTRIES_PER_PAGE);
+
+  // Build user name map for options creator display
+  const userMap = new Map(users.map((u) => [u.id, u.name]));
 
   return (
     <AdminClient
@@ -63,7 +68,7 @@ export default async function AdminPage({
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
-        }).format(e.createdAt),
+        }).format(e.date),
         userName: e.user.name,
         userAvatar: e.user.avatar,
         amount: e.amount,
@@ -72,6 +77,18 @@ export default async function AdminPage({
         location: e.location,
         rating: e.rating,
         note: e.note,
+      }))}
+      pizzaTypeOptions={pizzaTypeOptions.map((o) => ({
+        id: o.id,
+        name: o.name,
+        createdBy: userMap.get(o.createdBy) ?? o.createdBy,
+        createdAt: new Intl.DateTimeFormat("de-DE").format(o.createdAt),
+      }))}
+      locationOptions={locationOptions.map((o) => ({
+        id: o.id,
+        name: o.name,
+        createdBy: userMap.get(o.createdBy) ?? o.createdBy,
+        createdAt: new Intl.DateTimeFormat("de-DE").format(o.createdAt),
       }))}
       currentPage={page}
       totalPages={totalPages}

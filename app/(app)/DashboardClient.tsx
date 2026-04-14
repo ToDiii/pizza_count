@@ -17,6 +17,13 @@ interface RecentEntry {
   amount: number;
   amountFormatted: string;
   isToday: boolean;
+  sessionParticipants: string[];
+}
+
+interface User {
+  id: string;
+  name: string;
+  avatar: string;
 }
 
 interface DashboardClientProps {
@@ -27,6 +34,8 @@ interface DashboardClientProps {
   totalCount: number;
   totalCountFormatted: string;
   lastPizzaText: string;
+  currentUserId: string;
+  users: User[];
   recentEntries: RecentEntry[];
 }
 
@@ -38,6 +47,8 @@ export function DashboardClient({
   myCount,
   totalCount,
   lastPizzaText,
+  currentUserId,
+  users,
   recentEntries,
 }: DashboardClientProps) {
   const router = useRouter();
@@ -120,7 +131,11 @@ export function DashboardClient({
 
       {/* Add pizza button */}
       <div className="flex justify-center mb-8">
-        <AddPizzaButton onSuccess={handleSuccess} />
+        <AddPizzaButton
+          users={users}
+          currentUserId={currentUserId}
+          onSuccess={handleSuccess}
+        />
       </div>
 
       {/* Recent entries */}
@@ -155,6 +170,11 @@ export function DashboardClient({
                   {entry.pizzaType && (
                     <p className="text-sm font-medium text-gray-800 mt-0.5">{entry.pizzaType}</p>
                   )}
+                  {entry.sessionParticipants.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      mit {entry.sessionParticipants.join(", ")}
+                    </p>
+                  )}
                   {entry.location && (
                     <p className="text-xs text-gray-500">📍 {entry.location}</p>
                   )}
@@ -163,7 +183,6 @@ export function DashboardClient({
                   )}
                 </div>
 
-                {/* Delete button */}
                 <button
                   onClick={() => setDeleteConfirmId(entry.id)}
                   className="p-1.5 text-gray-300 hover:text-[#D62828] hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"

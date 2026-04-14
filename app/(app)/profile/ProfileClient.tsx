@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateProfileAction, changePasswordAction } from "@/lib/actions";
 import { Toast, useToast } from "@/components/Toast";
 import { AvatarPicker } from "@/components/AvatarPicker";
+import { APP_VERSION } from "@/lib/version";
 
 interface ProfileClientProps {
   userId: string;
@@ -139,7 +140,7 @@ export default function ProfileClient({
       </div>
 
       {/* Change password */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20">
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20 mb-4">
         <h2 className="text-sm font-semibold text-gray-500 mb-4 uppercase tracking-wide">
           Passwort ändern
         </h2>
@@ -181,6 +182,11 @@ export default function ProfileClient({
           </button>
         </form>
       </div>
+
+      {/* Version badge */}
+      <p className="text-center text-xs text-gray-400 mt-2">
+        Pizza Count v{APP_VERSION}
+      </p>
     </div>
   );
 }

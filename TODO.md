@@ -78,8 +78,12 @@
 
 ## Phase 3 – Polish & Extras ✨
 
+- ✅ PWA-Support (Manifest, Icons, apple-touch-icon, safe area)
+- ✅ Smart Dropdowns: globale Pizza-Sorten & Orte mit Verwaltung im Admin
+- ✅ Pizza-Sharing: mehrere User teilen sich eine Pizza (sessionId, split amount)
+- ✅ Backdating: Datum beim Eintragen wählbar
+- ✅ Build-Version im Profil + /about Seite
 - [ ] Dark Mode
-- [ ] PWA-Support (App auf Homescreen installierbar)
 - [ ] Push Notifications: „Zeit für Pizza?" (optional)
 - [ ] Export: eigene Einträge als CSV
 - [ ] Admins können beliebige Einträge bearbeiten (nicht nur löschen)
@@ -90,6 +94,9 @@ Admins können manuelle Badges/Abzeichen erstellen und an User vergeben:
 - Zwei Typen: automatisch (Meilenstein) und manuell (Admin-vergabe)
 - UI in /admin Panel
 - Schema: Badge-Tabelle mit Typ, manueller Vergabe-Relation
+
+### Merge/Edit PizzaTypeOptions und LocationOptions (⬜ Geplant)
+- Admins können zwei Einträge zusammenführen (z.B. "Salami" + "salami" → "Salami")
 
 ---
 

@@ -15,7 +15,10 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen">
       <Navigation isAdmin={isAdmin} />
-      <main className="flex-1 md:ml-56 pb-16 md:pb-0">
+      <main
+        className="flex-1 md:ml-56 md:pb-0"
+        style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
+      >
         {children}
       </main>
     </div>

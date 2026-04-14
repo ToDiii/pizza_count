@@ -25,21 +25,47 @@ export default async function DashboardPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const [user, myAgg, allAgg, lastEntry, recentEntries] = await Promise.all([
+  const [user, myAgg, allAgg, lastEntry, recentEntries, allUsers] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { avatar: true, name: true } }),
     prisma.pizzaEntry.aggregate({ where: { userId }, _sum: { amount: true } }),
     prisma.pizzaEntry.aggregate({ _sum: { amount: true } }),
-    prisma.pizzaEntry.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } }),
+    prisma.pizzaEntry.findFirst({ where: { userId }, orderBy: { date: "desc" } }),
     prisma.pizzaEntry.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { date: "desc" },
       take: 5,
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true, avatar: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
+  // Fetch session participants for shared entries
+  const sessionIds = recentEntries
+    .map((e) => e.sessionId)
+    .filter((s): s is string => !!s);
+
+  const sharedEntries =
+    sessionIds.length > 0
+      ? await prisma.pizzaEntry.findMany({
+          where: { sessionId: { in: sessionIds }, userId: { not: userId } },
+          include: { user: { select: { name: true } } },
+        })
+      : [];
+
+  const sessionParticipantsMap = new Map<string, string[]>();
+  for (const e of sharedEntries) {
+    if (!e.sessionId) continue;
+    const existing = sessionParticipantsMap.get(e.sessionId) ?? [];
+    if (!existing.includes(e.user.name)) {
+      sessionParticipantsMap.set(e.sessionId, [...existing, e.user.name]);
+    }
+  }
+
   const myCount = myAgg._sum.amount ?? 0;
   const totalCount = allAgg._sum.amount ?? 0;
-  const lastPizzaText = lastEntry ? formatRelativeDate(lastEntry.createdAt) : "Noch keine Pizza";
+  const lastPizzaText = lastEntry ? formatRelativeDate(lastEntry.date) : "Noch keine Pizza";
 
   return (
     <DashboardClient
@@ -50,17 +76,22 @@ export default async function DashboardPage() {
       totalCount={totalCount}
       totalCountFormatted={formatPizzaCount(totalCount)}
       lastPizzaText={lastPizzaText}
+      currentUserId={userId}
+      users={allUsers}
       recentEntries={recentEntries.map((e) => ({
         id: e.id,
-        date: formatDate(e.createdAt),
-        relDate: formatRelativeDate(e.createdAt),
+        date: formatDate(e.date),
+        relDate: formatRelativeDate(e.date),
         note: e.note,
         pizzaType: e.pizzaType,
         location: e.location,
         rating: e.rating,
         amount: e.amount,
         amountFormatted: formatPizzaCount(e.amount),
-        isToday: formatRelativeDate(e.createdAt) === "Heute",
+        isToday: formatRelativeDate(e.date) === "Heute",
+        sessionParticipants: e.sessionId
+          ? (sessionParticipantsMap.get(e.sessionId) ?? [])
+          : [],
       }))}
     />
   );

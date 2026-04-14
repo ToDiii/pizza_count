@@ -21,6 +21,7 @@ const sidebarItems = [
   { href: "/achievements", label: "Abzeichen", icon: "🎖️" },
   { href: "/stats", label: "Statistik", icon: "📊" },
   { href: "/profile", label: "Profil", icon: "👤" },
+  { href: "/about", label: "Über die App", icon: "ℹ️" },
 ];
 
 interface NavigationProps {
@@ -84,7 +85,7 @@ export function Navigation({ isAdmin }: NavigationProps) {
       {/* ── Mobile bottom tab bar ─────────────────────────────────────── */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#F7B731]/30 flex"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom))" }}
       >
         {bottomTabs.map((item) => (
           <Link
@@ -170,6 +171,19 @@ export function Navigation({ isAdmin }: NavigationProps) {
                     Admin
                   </Link>
                 )}
+
+                <Link
+                  href="/about"
+                  onClick={() => setDrawerOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    pathname === "/about"
+                      ? "bg-[#D62828] text-white"
+                      : "text-gray-700 hover:bg-[#F7B731]/20"
+                  }`}
+                >
+                  <span className="text-xl">ℹ️</span>
+                  Über die App
+                </Link>
               </div>
 
               <div className="mt-auto">

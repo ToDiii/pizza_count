@@ -8,6 +8,8 @@ import {
   adminDeleteUserAction,
   adminResetPasswordAction,
   adminDeleteEntryAction,
+  deletePizzaTypeOption,
+  deleteLocationOption,
 } from "@/lib/actions";
 import { Toast, useToast } from "@/components/Toast";
 
@@ -33,10 +35,19 @@ interface EntryRow {
   note: string | null;
 }
 
+interface OptionRow {
+  id: string;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 interface AdminClientProps {
   currentUserId: string;
   users: UserRow[];
   entries: EntryRow[];
+  pizzaTypeOptions: OptionRow[];
+  locationOptions: OptionRow[];
   currentPage: number;
   totalPages: number;
   totalEntries: number;
@@ -46,15 +57,18 @@ export default function AdminClient({
   currentUserId,
   users: initialUsers,
   entries,
+  pizzaTypeOptions: initialPizzaTypeOptions,
+  locationOptions: initialLocationOptions,
   currentPage,
   totalPages,
   totalEntries,
 }: AdminClientProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<"users" | "entries">("users");
+  const [tab, setTab] = useState<"users" | "entries" | "lists">("users");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [deleteUserConfirmId, setDeleteUserConfirmId] = useState<string | null>(null);
   const [deleteEntryConfirmId, setDeleteEntryConfirmId] = useState<string | null>(null);
+  const [deleteOptionConfirm, setDeleteOptionConfirm] = useState<{ id: string; type: "pizza" | "location" } | null>(null);
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -114,6 +128,21 @@ export default function AdminClient({
     });
   }
 
+  function handleDeleteOption(id: string, type: "pizza" | "location") {
+    startTransition(async () => {
+      const result =
+        type === "pizza"
+          ? await deletePizzaTypeOption(id)
+          : await deleteLocationOption(id);
+      if (result?.error) showToast(result.error, "error");
+      else {
+        showToast("Option gelöscht.", "success");
+        setDeleteOptionConfirm(null);
+        router.refresh();
+      }
+    });
+  }
+
   const inputCls = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] text-sm";
 
   return (
@@ -121,9 +150,7 @@ export default function AdminClient({
       {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
 
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#D62828]">⚙️ Admin-Panel</h1>
-        </div>
+        <h1 className="text-2xl font-bold text-[#D62828]">⚙️ Admin-Panel</h1>
         {tab === "users" && (
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -136,22 +163,20 @@ export default function AdminClient({
 
       {/* Tabs */}
       <div className="flex gap-2 mb-5">
-        <button
-          onClick={() => setTab("users")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
-            tab === "users" ? "bg-[#D62828] text-white" : "bg-white text-gray-600 border border-gray-200"
-          }`}
-        >
-          👥 Benutzer ({initialUsers.length})
-        </button>
-        <button
-          onClick={() => setTab("entries")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
-            tab === "entries" ? "bg-[#D62828] text-white" : "bg-white text-gray-600 border border-gray-200"
-          }`}
-        >
-          🍕 Einträge ({totalEntries})
-        </button>
+        {(["users", "entries", "lists"] as const).map((t) => {
+          const labels = { users: `👥 Benutzer (${initialUsers.length})`, entries: `🍕 Einträge (${totalEntries})`, lists: "📋 Listen" };
+          return (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-semibold transition-colors min-h-[44px] ${
+                tab === t ? "bg-[#D62828] text-white" : "bg-white text-gray-600 border border-gray-200"
+              }`}
+            >
+              {labels[t]}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Users tab ─────────────────────────────────────────────── */}
@@ -175,7 +200,6 @@ export default function AdminClient({
               </form>
             </div>
           )}
-
           <div className="flex flex-col gap-3">
             {initialUsers.map((user) => (
               <div key={user.id} className="bg-white rounded-2xl p-4 shadow-sm border border-[#F7B731]/20">
@@ -245,31 +269,79 @@ export default function AdminClient({
             )}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 mt-6">
               {currentPage > 1 && (
-                <Link
-                  href={`/admin?page=${currentPage - 1}`}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 min-h-[44px] flex items-center"
-                >
+                <Link href={`/admin?page=${currentPage - 1}`} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 min-h-[44px] flex items-center">
                   ← Vorherige
                 </Link>
               )}
-              <span className="text-sm text-gray-500">
-                Seite {currentPage} / {totalPages}
-              </span>
+              <span className="text-sm text-gray-500">Seite {currentPage} / {totalPages}</span>
               {currentPage < totalPages && (
-                <Link
-                  href={`/admin?page=${currentPage + 1}`}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 min-h-[44px] flex items-center"
-                >
+                <Link href={`/admin?page=${currentPage + 1}`} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 min-h-[44px] flex items-center">
                   Nächste →
                 </Link>
               )}
             </div>
           )}
         </>
+      )}
+
+      {/* ── Lists tab ─────────────────────────────────────────────── */}
+      {tab === "lists" && (
+        <div className="flex flex-col gap-5">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+              Pizza-Sorten ({initialPizzaTypeOptions.length})
+            </h2>
+            {initialPizzaTypeOptions.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">Noch keine Sorten gespeichert.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {initialPizzaTypeOptions.map((opt) => (
+                  <div key={opt.id} className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-[#F7B731]/20 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm">{opt.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">von {opt.createdBy} · {opt.createdAt}</p>
+                    </div>
+                    <button
+                      onClick={() => setDeleteOptionConfirm({ id: opt.id, type: "pizza" })}
+                      className="p-1.5 text-gray-300 hover:text-[#D62828] hover:bg-red-50 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+              Orte ({initialLocationOptions.length})
+            </h2>
+            {initialLocationOptions.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-6">Noch keine Orte gespeichert.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {initialLocationOptions.map((opt) => (
+                  <div key={opt.id} className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-[#F7B731]/20 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm">{opt.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">von {opt.createdBy} · {opt.createdAt}</p>
+                    </div>
+                    <button
+                      onClick={() => setDeleteOptionConfirm({ id: opt.id, type: "location" })}
+                      className="p-1.5 text-gray-300 hover:text-[#D62828] hover:bg-red-50 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Delete user confirmation */}
@@ -302,6 +374,24 @@ export default function AdminClient({
               <div className="flex gap-3">
                 <button onClick={() => setDeleteEntryConfirmId(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 min-h-[48px]">Abbrechen</button>
                 <button onClick={() => handleDeleteEntry(deleteEntryConfirmId)} disabled={isPending} className="flex-1 py-3 bg-[#D62828] text-white rounded-xl font-semibold text-sm hover:bg-[#b82020] disabled:opacity-60 min-h-[48px]">{isPending ? "..." : "Löschen"}</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete option confirmation */}
+      {deleteOptionConfirm && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setDeleteOptionConfirm(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-white rounded-2xl p-6 max-w-sm mx-auto shadow-xl">
+            <div className="text-center">
+              <div className="text-4xl mb-3">🗑️</div>
+              <h3 className="font-bold text-gray-800 mb-2">Option löschen?</h3>
+              <p className="text-sm text-gray-500 mb-6">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteOptionConfirm(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm hover:bg-gray-50 min-h-[48px]">Abbrechen</button>
+                <button onClick={() => handleDeleteOption(deleteOptionConfirm.id, deleteOptionConfirm.type)} disabled={isPending} className="flex-1 py-3 bg-[#D62828] text-white rounded-xl font-semibold text-sm hover:bg-[#b82020] disabled:opacity-60 min-h-[48px]">{isPending ? "..." : "Löschen"}</button>
               </div>
             </div>
           </div>

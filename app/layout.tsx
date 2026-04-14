@@ -4,6 +4,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Pizza Count 🍕",
   description: "Trackt jede gemeinsam gegessene Pizza",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Pizza Count",
+  },
 };
 
 export const viewport: Viewport = {
@@ -11,6 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -20,6 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className="h-full">
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#FFF8F0] text-[#1a1a1a]">
         {children}
       </body>

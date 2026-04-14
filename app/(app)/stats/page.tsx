@@ -15,8 +15,8 @@ export default async function StatsPage() {
   const [entries, pizzaTypeGroups, locationGroups] = await Promise.all([
     prisma.pizzaEntry.findMany({
       where: { userId },
-      select: { createdAt: true, amount: true },
-      orderBy: { createdAt: "asc" },
+      select: { date: true, amount: true },
+      orderBy: { date: "asc" },
     }),
     prisma.pizzaEntry.groupBy({
       by: ["pizzaType"],
@@ -37,8 +37,8 @@ export default async function StatsPage() {
   // Group by year and month, summing amounts
   const byYearMonth: Record<number, Record<number, number>> = {};
   for (const entry of entries) {
-    const year = entry.createdAt.getFullYear();
-    const month = entry.createdAt.getMonth();
+    const year = entry.date.getFullYear();
+    const month = entry.date.getMonth();
     if (!byYearMonth[year]) byYearMonth[year] = {};
     byYearMonth[year][month] = (byYearMonth[year][month] ?? 0) + entry.amount;
   }
