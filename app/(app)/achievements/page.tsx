@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/achievements";
+import { formatPizzaCount } from "@/lib/format";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("de-DE", {
@@ -14,11 +15,12 @@ export default async function AchievementsPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const [unlockedList, pizzaCount] = await Promise.all([
+  const [unlockedList, totalAgg] = await Promise.all([
     prisma.achievement.findMany({ where: { userId } }),
-    prisma.pizzaEntry.count({ where: { userId } }),
+    prisma.pizzaEntry.aggregate({ where: { userId }, _sum: { amount: true } }),
   ]);
 
+  const pizzaTotal = totalAgg._sum.amount ?? 0;
   const unlockedMap = new Map(unlockedList.map((a) => [a.type, a.unlockedAt]));
 
   return (
@@ -41,9 +43,7 @@ export default async function AchievementsPage() {
         <div className="w-full bg-gray-100 rounded-full h-3">
           <div
             className="bg-[#D62828] h-3 rounded-full transition-all"
-            style={{
-              width: `${(unlockedMap.size / ACHIEVEMENT_DEFINITIONS.length) * 100}%`,
-            }}
+            style={{ width: `${(unlockedMap.size / ACHIEVEMENT_DEFINITIONS.length) * 100}%` }}
           />
         </div>
       </div>
@@ -52,7 +52,7 @@ export default async function AchievementsPage() {
         {ACHIEVEMENT_DEFINITIONS.map((def) => {
           const unlockedAt = unlockedMap.get(def.type);
           const isUnlocked = !!unlockedAt;
-          const progress = Math.min(pizzaCount, def.required);
+          const progress = Math.min(pizzaTotal, def.required);
 
           return (
             <div
@@ -64,9 +64,7 @@ export default async function AchievementsPage() {
               }`}
             >
               <div className="flex items-start gap-3">
-                <span
-                  className={`text-4xl ${isUnlocked ? "" : "grayscale"}`}
-                >
+                <span className={`text-4xl ${isUnlocked ? "" : "grayscale"}`}>
                   {def.emoji}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -75,23 +73,20 @@ export default async function AchievementsPage() {
                     {isUnlocked ? (
                       <>Freigeschaltet am {formatDate(new Date(unlockedAt))}</>
                     ) : (
-                      <>{def.description} ({progress}/{def.required})</>
+                      <>
+                        {def.description} ({formatPizzaCount(progress)}/{def.required})
+                      </>
                     )}
                   </p>
-
-                  {/* Progress bar for locked */}
                   {!isUnlocked && (
                     <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
                       <div
                         className="bg-[#F7B731] h-1.5 rounded-full transition-all"
-                        style={{
-                          width: `${(progress / def.required) * 100}%`,
-                        }}
+                        style={{ width: `${(progress / def.required) * 100}%` }}
                       />
                     </div>
                   )}
                 </div>
-
                 {isUnlocked && (
                   <span className="text-[#F7B731] text-xl flex-shrink-0">✨</span>
                 )}

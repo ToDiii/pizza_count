@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { formatPizzaCount } from "@/lib/format";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("de-DE", {
@@ -12,31 +13,38 @@ function formatDate(date: Date): string {
 export default async function LeaderboardPage() {
   const session = await auth();
 
-  // Get all users with their pizza counts and last entry
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      _count: { select: { pizzaEntries: true } },
-      pizzaEntries: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { createdAt: true },
+  const [users, pizzaSums] = await Promise.all([
+    prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        pizzaEntries: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
       },
-    },
-    orderBy: {
-      pizzaEntries: { _count: "desc" },
-    },
-  });
+    }),
+    prisma.pizzaEntry.groupBy({
+      by: ["userId"],
+      _sum: { amount: true },
+    }),
+  ]);
 
-  const ranked = users.map((u, index) => ({
-    rank: index + 1,
-    id: u.id,
-    name: u.name,
-    count: u._count.pizzaEntries,
-    lastEntry: u.pizzaEntries[0]?.createdAt ?? null,
-    isMe: u.id === session!.user.id,
-  }));
+  const sumMap = new Map(pizzaSums.map((s) => [s.userId, s._sum.amount ?? 0]));
+
+  const ranked = users
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      avatar: u.avatar,
+      count: sumMap.get(u.id) ?? 0,
+      lastEntry: u.pizzaEntries[0]?.createdAt ?? null,
+      isMe: u.id === session!.user.id,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .map((u, index) => ({ ...u, rank: index + 1 }));
 
   const medals = ["🥇", "🥈", "🥉"];
 
@@ -68,18 +76,17 @@ export default async function LeaderboardPage() {
                 {user.rank <= 3 ? (
                   <span className="text-2xl">{medals[user.rank - 1]}</span>
                 ) : (
-                  <span className="text-lg font-bold text-gray-400">
-                    #{user.rank}
-                  </span>
+                  <span className="text-lg font-bold text-gray-400">#{user.rank}</span>
                 )}
               </div>
+
+              {/* Avatar */}
+              <div className="text-2xl flex-shrink-0">{user.avatar}</div>
 
               {/* Name & last entry */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-800 truncate">
-                    {user.name}
-                  </p>
+                  <p className="font-semibold text-gray-800 truncate">{user.name}</p>
                   {user.isMe && (
                     <span className="text-xs bg-[#D62828] text-white px-2 py-0.5 rounded-full flex-shrink-0">
                       Du
@@ -96,7 +103,7 @@ export default async function LeaderboardPage() {
               {/* Count */}
               <div className="text-right flex-shrink-0">
                 <p className="text-2xl font-black text-[#D62828]">
-                  {user.count}
+                  {formatPizzaCount(user.count)}
                 </p>
                 <p className="text-xs text-gray-400">Pizzen</p>
               </div>

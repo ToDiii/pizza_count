@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { formatPizzaCount } from "@/lib/format";
 import StatsClient from "./StatsClient";
 
 const MONTH_NAMES = [
@@ -11,37 +12,45 @@ export default async function StatsPage() {
   const session = await auth();
   const userId = session!.user.id;
 
-  const entries = await prisma.pizzaEntry.findMany({
-    where: { userId },
-    select: { createdAt: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const [entries, pizzaTypeGroups, locationGroups] = await Promise.all([
+    prisma.pizzaEntry.findMany({
+      where: { userId },
+      select: { createdAt: true, amount: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.pizzaEntry.groupBy({
+      by: ["pizzaType"],
+      where: { userId, pizzaType: { not: null } },
+      _sum: { amount: true },
+      _avg: { rating: true },
+      orderBy: { _sum: { amount: "desc" } },
+    }),
+    prisma.pizzaEntry.groupBy({
+      by: ["location"],
+      where: { userId, location: { not: null } },
+      _sum: { amount: true },
+      _avg: { rating: true },
+      orderBy: { _sum: { amount: "desc" } },
+    }),
+  ]);
 
-  // Group by year and month
+  // Group by year and month, summing amounts
   const byYearMonth: Record<number, Record<number, number>> = {};
-
   for (const entry of entries) {
     const year = entry.createdAt.getFullYear();
-    const month = entry.createdAt.getMonth(); // 0-indexed
+    const month = entry.createdAt.getMonth();
     if (!byYearMonth[year]) byYearMonth[year] = {};
-    byYearMonth[year][month] = (byYearMonth[year][month] ?? 0) + 1;
+    byYearMonth[year][month] = (byYearMonth[year][month] ?? 0) + entry.amount;
   }
 
-  const years = Object.keys(byYearMonth)
-    .map(Number)
-    .sort((a, b) => a - b);
+  const years = Object.keys(byYearMonth).map(Number).sort((a, b) => a - b);
 
-  // Build year summary
   const yearData = years.map((year) => ({
     year,
     count: Object.values(byYearMonth[year]).reduce((s, n) => s + n, 0),
   }));
 
-  // Build month data for each year (all 12 months, 0 for empty)
-  const monthDataByYear: Record<
-    number,
-    { month: number; label: string; count: number }[]
-  > = {};
+  const monthDataByYear: Record<number, { month: number; label: string; count: number }[]> = {};
   for (const year of years) {
     monthDataByYear[year] = MONTH_NAMES.map((label, i) => ({
       month: i,
@@ -72,25 +81,45 @@ export default async function StatsPage() {
   );
   const avgPerMonth =
     monthsWithEntries.length > 0
-      ? (
-          monthsWithEntries.reduce((s, m) => s + m.count, 0) /
-          monthsWithEntries.length
-        ).toFixed(1)
+      ? formatPizzaCount(
+          monthsWithEntries.reduce((s, m) => s + m.count, 0) / monthsWithEntries.length
+        )
       : "0";
+
+  // Top pizza types
+  const topPizzaTypes = pizzaTypeGroups.map((g) => ({
+    name: g.pizzaType!,
+    count: g._sum.amount ?? 0,
+    countFormatted: formatPizzaCount(g._sum.amount ?? 0),
+    avgRating: g._avg.rating ?? null,
+  }));
+
+  // Top locations
+  const topLocations = locationGroups.map((g) => ({
+    name: g.location!,
+    count: g._sum.amount ?? 0,
+    countFormatted: formatPizzaCount(g._sum.amount ?? 0),
+    avgRating: g._avg.rating ?? null,
+  }));
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
 
   return (
     <StatsClient
-      yearData={yearData}
+      yearData={yearData.map((y) => ({
+        ...y,
+        countFormatted: formatPizzaCount(y.count),
+      }))}
       monthDataByYear={monthDataByYear}
       years={years}
-      bestYear={bestYear.count > 0 ? `${bestYear.year} (${bestYear.count} 🍕)` : "–"}
-      bestMonth={bestMonthCount > 0 ? `${bestMonthLabel} (${bestMonthCount} 🍕)` : "–"}
+      bestYear={bestYear.count > 0 ? `${bestYear.year} (${formatPizzaCount(bestYear.count)} 🍕)` : "–"}
+      bestMonth={bestMonthCount > 0 ? `${bestMonthLabel} (${formatPizzaCount(bestMonthCount)} 🍕)` : "–"}
       avgPerMonth={avgPerMonth}
       currentYear={currentYear}
       currentMonth={currentMonth}
+      topPizzaTypes={topPizzaTypes}
+      topLocations={topLocations}
     />
   );
 }

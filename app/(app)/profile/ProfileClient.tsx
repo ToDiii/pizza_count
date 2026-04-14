@@ -3,22 +3,25 @@
 import { useState, useTransition } from "react";
 import { updateProfileAction, changePasswordAction } from "@/lib/actions";
 import { Toast, useToast } from "@/components/Toast";
+import { AvatarPicker } from "@/components/AvatarPicker";
 
 interface ProfileClientProps {
   userId: string;
   initialName: string;
+  initialAvatar: string;
   email: string;
   role: string;
-  pizzaCount: number;
+  pizzaCountFormatted: string;
   firstPizzaDate: string | null;
   earnedBadges: { emoji: string; name: string }[];
 }
 
 export default function ProfileClient({
   initialName,
+  initialAvatar,
   email,
   role,
-  pizzaCount,
+  pizzaCountFormatted,
   firstPizzaDate,
   earnedBadges,
 }: ProfileClientProps) {
@@ -36,11 +39,8 @@ export default function ProfileClient({
     formData.set("name", name);
     startNameTransition(async () => {
       const result = await updateProfileAction(formData);
-      if (result?.error) {
-        showToast(result.error, "error");
-      } else {
-        showToast("Name aktualisiert!", "success");
-      }
+      if (result?.error) showToast(result.error, "error");
+      else showToast("Name aktualisiert!", "success");
     });
   }
 
@@ -52,9 +52,8 @@ export default function ProfileClient({
     formData.set("confirmPassword", confirmPassword);
     startPwTransition(async () => {
       const result = await changePasswordAction(formData);
-      if (result?.error) {
-        showToast(result.error, "error");
-      } else {
+      if (result?.error) showToast(result.error, "error");
+      else {
         showToast("Passwort geändert!", "success");
         setCurrentPassword("");
         setNewPassword("");
@@ -73,26 +72,26 @@ export default function ProfileClient({
         <h1 className="text-2xl font-bold text-[#D62828]">👤 Mein Profil</h1>
       </div>
 
-      {/* Stats */}
+      {/* Avatar + Stats card */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20 mb-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#D62828] flex items-center justify-center text-2xl">
-            🍕
-          </div>
-          <div>
-            <p className="font-bold text-gray-800 text-lg">{initialName}</p>
-            <p className="text-sm text-gray-500">{email}</p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {role === "ADMIN" ? "👑 Administrator" : "Benutzer"} · {pizzaCount} Pizzen
+        <div className="flex items-start gap-5">
+          {/* Avatar picker */}
+          <AvatarPicker currentAvatar={initialAvatar} />
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 pt-1">
+            <p className="font-bold text-gray-800 text-lg truncate">{initialName}</p>
+            <p className="text-sm text-gray-500 truncate">{email}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {role === "ADMIN" ? "👑 Administrator" : "Benutzer"} · {pizzaCountFormatted} Pizzen
             </p>
+            {firstPizzaDate && (
+              <p className="text-xs text-gray-400 mt-1">
+                🍕 Erste Pizza: <span className="font-medium">{firstPizzaDate}</span>
+              </p>
+            )}
           </div>
         </div>
-
-        {firstPizzaDate && (
-          <div className="mt-4 pt-4 border-t border-gray-100 text-sm text-gray-500">
-            🍕 Erste Pizza: <span className="font-medium text-gray-700">{firstPizzaDate}</span>
-          </div>
-        )}
       </div>
 
       {/* Badges */}
@@ -124,9 +123,10 @@ export default function ProfileClient({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] text-sm"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731]"
             placeholder="Anzeigename"
             required
+            style={{ fontSize: "16px" }}
           />
           <button
             type="submit"
@@ -150,7 +150,8 @@ export default function ProfileClient({
             type="password"
             placeholder="Aktuelles Passwort"
             required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] text-sm"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731]"
+            style={{ fontSize: "16px" }}
           />
           <input
             value={newPassword}
@@ -159,7 +160,8 @@ export default function ProfileClient({
             placeholder="Neues Passwort (min. 6 Zeichen)"
             required
             minLength={6}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] text-sm"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731]"
+            style={{ fontSize: "16px" }}
           />
           <input
             value={confirmPassword}
@@ -167,7 +169,8 @@ export default function ProfileClient({
             type="password"
             placeholder="Neues Passwort bestätigen"
             required
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] text-sm"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731]"
+            style={{ fontSize: "16px" }}
           />
           <button
             type="submit"
