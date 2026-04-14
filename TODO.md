@@ -59,6 +59,14 @@
 - [ ] „Beste Pizza" Statistik: höchstbewerteter Eintrag
 - [ ] Google Maps Link: Vorschau / klickbares Icon
 
+### Dropdown-Felder beim Pizza-Eintragen (⬜ Geplant)
+Beim Erstellen eines neuen Eintrags sollen Dropdown-Felder verfügbar sein:
+- Pizza-Sorte: Auswahl aus gespeicherten Sorten + Freitext-Option "Neue Sorte..."
+- Ort/Restaurant: Auswahl aus gespeicherten Orten + Freitext-Option "Neuer Ort..."
+- Bewertung: Sterne-Auswahl (1-5)
+- Gespeicherte Werte werden aus der Datenbank geladen (vergangene Einträge)
+- Schema-Erweiterung erforderlich: `pizzaType`, `location`, `rating` Felder in PizzaEntry
+
 ---
 
 ## Phase 3 – Polish & Extras ✨
