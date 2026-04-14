@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --pizza-red: #D62828;
+  --pizza-yellow: #F7B731;
+  --pizza-cream: #FFF8F0;
+  --pizza-brown: #8B4513;
+  --pizza-dark: #1a1a1a;
+  --background: #FFF8F0;
+  --foreground: #1a1a1a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-pizza-red: var(--pizza-red);
+  --color-pizza-yellow: var(--pizza-yellow);
+  --color-pizza-cream: var(--pizza-cream);
+  --color-pizza-brown: var(--pizza-brown);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--pizza-cream);
+  color: var(--pizza-dark);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100dvh;
+}
+
+html {
+  scroll-behavior: smooth;
+}
