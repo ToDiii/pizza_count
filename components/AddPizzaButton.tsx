@@ -2,11 +2,8 @@
 
 import { useState, useTransition, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  addPizzaEntry,
-  getPizzaTypeSuggestions,
-  getLocationSuggestions,
-} from "@/lib/actions";
+import { addPizzaEntry, getPizzaTypeOptions, getLocationOptions, addPizzaTypeOption, addLocationOption } from "@/lib/actions";
+import { SmartCombobox } from "./SmartCombobox";
 import { PizzaRain } from "./PizzaRain";
 import { Toast, useToast } from "./Toast";
 
@@ -17,19 +14,53 @@ const AMOUNTS = [
   { label: "2", value: 2 },
 ];
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function minDateISO(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatGermanDate(isoDate: string): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  return d.toLocaleDateString("de-DE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+interface User {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
 interface AddPizzaButtonProps {
+  users?: User[];
+  currentUserId?: string;
   onSuccess?: (amount: number) => void;
 }
 
-export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
+export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizzaButtonProps) {
   const [showSheet, setShowSheet] = useState(false);
   const [amount, setAmount] = useState(1);
   const [rating, setRating] = useState(0);
   const [pizzaType, setPizzaType] = useState("");
   const [location, setLocation] = useState("");
   const [note, setNote] = useState("");
-  const [pizzaTypeSuggestions, setPizzaTypeSuggestions] = useState<string[]>([]);
-  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [pizzaTypeOptions, setPizzaTypeOptions] = useState<string[]>([]);
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>(
+    currentUserId ? [currentUserId] : []
+  );
+  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [showDateInput, setShowDateInput] = useState(false);
   const [showRain, setShowRain] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast, showToast, hideToast } = useToast();
@@ -41,26 +72,29 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
     setPizzaType("");
     setLocation("");
     setNote("");
+    setSelectedUserIds(currentUserId ? [currentUserId] : []);
+    setSelectedDate(todayISO());
+    setShowDateInput(false);
   }
 
   async function openSheet() {
     setShowSheet(true);
-    // Fetch suggestions in background
     const [types, locs] = await Promise.all([
-      getPizzaTypeSuggestions(),
-      getLocationSuggestions(),
+      getPizzaTypeOptions(),
+      getLocationOptions(),
     ]);
-    setPizzaTypeSuggestions(types);
-    setLocationSuggestions(locs);
+    setPizzaTypeOptions(types);
+    setLocationOptions(locs);
   }
 
-  function handleInputFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setTimeout(() => {
-      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 350);
+  function toggleUser(userId: string) {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
   }
 
   function handleConfirm() {
+    const ids = selectedUserIds.length > 0 ? selectedUserIds : (currentUserId ? [currentUserId] : undefined);
     startTransition(async () => {
       const result = await addPizzaEntry({
         amount,
@@ -68,6 +102,8 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
         pizzaType,
         location,
         rating: rating > 0 ? rating : undefined,
+        selectedUserIds: ids,
+        date: selectedDate !== todayISO() ? selectedDate : undefined,
       });
       if (result?.error) {
         showToast(result.error, "error");
@@ -85,12 +121,7 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
     onSuccess?.(amount);
   }
 
-  const filteredPizzaTypes = pizzaTypeSuggestions.filter(
-    (s) => s.toLowerCase().includes(pizzaType.toLowerCase()) && s !== pizzaType
-  );
-  const filteredLocations = locationSuggestions.filter(
-    (s) => s.toLowerCase().includes(location.toLowerCase()) && s !== location
-  );
+  const isToday = selectedDate === todayISO();
 
   return (
     <>
@@ -151,8 +182,8 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
                   <h2 className="text-xl font-bold text-gray-800">Pizza eintragen</h2>
                 </div>
 
-                {/* 1. Amount selector */}
-                <div className="mb-5">
+                {/* 1. Amount */}
+                <div className="mb-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     Menge
                   </p>
@@ -173,7 +204,38 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
                   </div>
                 </div>
 
-                {/* 2. Star rating */}
+                {/* 2. Date */}
+                <div className="mb-5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">📅</span>
+                    <span className="text-sm text-gray-700 flex-1">
+                      {isToday ? "Heute" : formatGermanDate(selectedDate)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDateInput((v) => !v)}
+                      className="text-xs text-[#D62828] font-semibold px-2 py-1 rounded-lg hover:bg-red-50 min-h-[36px]"
+                    >
+                      Ändern
+                    </button>
+                  </div>
+                  {showDateInput && (
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      min={minDateISO()}
+                      max={todayISO()}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setShowDateInput(false);
+                      }}
+                      className="mt-2 w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] bg-white"
+                      style={{ fontSize: "16px" }}
+                    />
+                  )}
+                </div>
+
+                {/* 3. Star rating */}
                 <div className="mb-5">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     Bewertung
@@ -195,90 +257,69 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
                   )}
                 </div>
 
-                {/* 3. Pizza type */}
-                <div className="mb-4 relative">
-                  <input
+                {/* 4. Who shared? */}
+                {users.length > 1 && (
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Wer hat mitgegessen?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {users.map((u) => {
+                        const selected = selectedUserIds.includes(u.id);
+                        return (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => toggleUser(u.id)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors min-h-[40px] border ${
+                              selected
+                                ? "bg-[#D62828] text-white border-[#D62828]"
+                                : "bg-white text-gray-700 border-gray-200 hover:border-[#D62828]/50"
+                            }`}
+                          >
+                            <span>{u.avatar}</span>
+                            <span>{u.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {selectedUserIds.length > 1 && (
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Jeder bekommt ×{(amount / selectedUserIds.length) % 1 === 0.5 ? "½" : amount / selectedUserIds.length} Pizza angerechnet
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* 5. Pizza type */}
+                <div className="mb-4">
+                  <SmartCombobox
+                    label="Pizza-Sorte"
+                    options={pizzaTypeOptions}
                     value={pizzaType}
-                    onChange={(e) => setPizzaType(e.target.value)}
-                    onFocus={handleInputFocus}
+                    onChange={setPizzaType}
+                    onAddNew={addPizzaTypeOption}
                     placeholder="Pizza-Sorte (optional)"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] bg-white"
-                    style={{ fontSize: "16px" }}
-                    autoComplete="off"
                   />
-                  {filteredPizzaTypes.length > 0 && pizzaType.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {filteredPizzaTypes.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setPizzaType(s)}
-                          className="text-sm bg-[#FFF8F0] border border-[#F7B731]/40 px-3 py-1 rounded-full text-gray-700 hover:bg-[#F7B731]/20 min-h-[36px]"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {pizzaTypeSuggestions.length > 0 && pizzaType.length === 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {pizzaTypeSuggestions.slice(0, 5).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setPizzaType(s)}
-                          className="text-sm bg-[#FFF8F0] border border-[#F7B731]/40 px-3 py-1 rounded-full text-gray-700 hover:bg-[#F7B731]/20 min-h-[36px]"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
-                {/* 4. Location */}
-                <div className="mb-4 relative">
-                  <input
+                {/* 6. Location */}
+                <div className="mb-4">
+                  <SmartCombobox
+                    label="Ort"
+                    options={locationOptions}
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    onFocus={handleInputFocus}
+                    onChange={setLocation}
+                    onAddNew={addLocationOption}
                     placeholder="Ort / Restaurant (optional)"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] bg-white"
-                    style={{ fontSize: "16px" }}
-                    autoComplete="off"
                   />
-                  {filteredLocations.length > 0 && location.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {filteredLocations.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setLocation(s)}
-                          className="text-sm bg-[#FFF8F0] border border-[#F7B731]/40 px-3 py-1 rounded-full text-gray-700 hover:bg-[#F7B731]/20 min-h-[36px]"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {locationSuggestions.length > 0 && location.length === 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {locationSuggestions.slice(0, 5).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setLocation(s)}
-                          className="text-sm bg-[#FFF8F0] border border-[#F7B731]/40 px-3 py-1 rounded-full text-gray-700 hover:bg-[#F7B731]/20 min-h-[36px]"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
-                {/* 5. Note */}
+                {/* 7. Note */}
                 <div className="mb-5">
                   <input
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    onFocus={handleInputFocus}
                     placeholder="Notiz (optional)"
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F7B731] bg-white"
                     style={{ fontSize: "16px" }}
@@ -286,7 +327,7 @@ export function AddPizzaButton({ onSuccess }: AddPizzaButtonProps) {
                   />
                 </div>
 
-                {/* 6. Confirm button */}
+                {/* 8. Confirm */}
                 <button
                   onClick={handleConfirm}
                   disabled={isPending}

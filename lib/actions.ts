@@ -52,28 +52,44 @@ export async function addPizzaEntry(data: {
   pizzaType?: string;
   location?: string;
   rating?: number;
+  selectedUserIds?: string[];
+  date?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
-  const entry = await prisma.pizzaEntry.create({
-    data: {
-      userId: session.user.id,
-      amount: data.amount,
-      note: data.note?.trim() || null,
-      pizzaType: data.pizzaType?.trim() || null,
-      location: data.location?.trim() || null,
-      rating: data.rating ?? null,
-    },
-  });
+  // Use noon UTC so date displays correctly regardless of user timezone
+  const entryDate = data.date ? new Date(`${data.date}T12:00:00`) : new Date();
 
-  await checkAndUnlockAchievements(session.user.id);
+  const userIds =
+    data.selectedUserIds && data.selectedUserIds.length > 0
+      ? data.selectedUserIds
+      : [session.user.id];
+
+  const splitAmount = data.amount / userIds.length;
+  const sessionId = userIds.length > 1 ? crypto.randomUUID() : null;
+
+  for (const userId of userIds) {
+    await prisma.pizzaEntry.create({
+      data: {
+        userId,
+        amount: splitAmount,
+        note: data.note?.trim() || null,
+        pizzaType: data.pizzaType?.trim() || null,
+        location: data.location?.trim() || null,
+        rating: data.rating ?? null,
+        date: entryDate,
+        sessionId,
+      },
+    });
+    await checkAndUnlockAchievements(userId);
+  }
 
   revalidatePath("/");
   revalidatePath("/leaderboard");
   revalidatePath("/achievements");
   revalidatePath("/stats");
-  return { success: true, entry };
+  return { success: true };
 }
 
 export async function deletePizzaEntryAction(entryId: string) {
@@ -93,7 +109,7 @@ export async function deletePizzaEntryAction(entryId: string) {
   return { success: true };
 }
 
-// ─── Autocomplete ─────────────────────────────────────────────────────────────
+// ─── Autocomplete (legacy) ────────────────────────────────────────────────────
 
 export async function getPizzaTypeSuggestions(): Promise<string[]> {
   const session = await auth();
@@ -119,6 +135,130 @@ export async function getLocationSuggestions(): Promise<string[]> {
     orderBy: { createdAt: "desc" },
   });
   return entries.map((e) => e.location!);
+}
+
+// ─── Smart Options ────────────────────────────────────────────────────────────
+
+export async function getPizzaTypeOptions(): Promise<string[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  const [allOptions, recentUsage] = await Promise.all([
+    prisma.pizzaTypeOption.findMany({ orderBy: { name: "asc" } }),
+    prisma.pizzaEntry.findMany({
+      where: { userId: session.user.id, pizzaType: { not: null } },
+      select: { pizzaType: true, date: true },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  const usageMap = new Map<string, Date>();
+  for (const entry of recentUsage) {
+    if (entry.pizzaType && !usageMap.has(entry.pizzaType)) {
+      usageMap.set(entry.pizzaType, entry.date);
+    }
+  }
+
+  return allOptions
+    .map((o) => o.name)
+    .sort((a, b) => {
+      const aDate = usageMap.get(a);
+      const bDate = usageMap.get(b);
+      if (aDate && bDate) return bDate.getTime() - aDate.getTime();
+      if (aDate) return -1;
+      if (bDate) return 1;
+      return a.localeCompare(b, "de");
+    });
+}
+
+export async function getLocationOptions(): Promise<string[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  const [allOptions, recentUsage] = await Promise.all([
+    prisma.locationOption.findMany({ orderBy: { name: "asc" } }),
+    prisma.pizzaEntry.findMany({
+      where: { userId: session.user.id, location: { not: null } },
+      select: { location: true, date: true },
+      orderBy: { date: "desc" },
+    }),
+  ]);
+
+  const usageMap = new Map<string, Date>();
+  for (const entry of recentUsage) {
+    if (entry.location && !usageMap.has(entry.location)) {
+      usageMap.set(entry.location, entry.date);
+    }
+  }
+
+  return allOptions
+    .map((o) => o.name)
+    .sort((a, b) => {
+      const aDate = usageMap.get(a);
+      const bDate = usageMap.get(b);
+      if (aDate && bDate) return bDate.getTime() - aDate.getTime();
+      if (aDate) return -1;
+      if (bDate) return 1;
+      return a.localeCompare(b, "de");
+    });
+}
+
+export async function addPizzaTypeOption(name: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  await prisma.pizzaTypeOption.upsert({
+    where: { name: trimmed },
+    update: {},
+    create: { name: trimmed, createdBy: session.user.id },
+  });
+  revalidatePath("/admin");
+}
+
+export async function addLocationOption(name: string): Promise<void> {
+  const session = await auth();
+  if (!session?.user?.id) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  await prisma.locationOption.upsert({
+    where: { name: trimmed },
+    update: {},
+    create: { name: trimmed, createdBy: session.user.id },
+  });
+  revalidatePath("/admin");
+}
+
+export async function deletePizzaTypeOption(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Nicht angemeldet." };
+  const option = await prisma.pizzaTypeOption.findUnique({ where: { id } });
+  if (!option) return { success: false, error: "Nicht gefunden." };
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (user?.role !== "ADMIN" && option.createdBy !== session.user.id) {
+    return { success: false, error: "Keine Berechtigung." };
+  }
+  await prisma.pizzaTypeOption.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function deleteLocationOption(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Nicht angemeldet." };
+  const option = await prisma.locationOption.findUnique({ where: { id } });
+  if (!option) return { success: false, error: "Nicht gefunden." };
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (user?.role !== "ADMIN" && option.createdBy !== session.user.id) {
+    return { success: false, error: "Keine Berechtigung." };
+  }
+  await prisma.locationOption.delete({ where: { id } });
+  revalidatePath("/admin");
+  return { success: true };
 }
 
 // ─── Achievements ─────────────────────────────────────────────────────────────

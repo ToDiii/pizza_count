@@ -25,11 +25,13 @@ model User {
 model PizzaEntry {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+  date      DateTime @default(now())
   amount    Float    @default(1.0)
   note      String?
   pizzaType String?
   location  String?
   rating    Int?
+  sessionId String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -42,4 +44,18 @@ model Achievement {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
+}
+
+model PizzaTypeOption {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  createdBy String
+}
+
+model LocationOption {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  createdBy String
 }

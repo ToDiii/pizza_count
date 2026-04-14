@@ -28,6 +28,7 @@ body {
   color: var(--pizza-dark);
   font-family: system-ui, -apple-system, sans-serif;
   min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 html {

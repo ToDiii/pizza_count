@@ -20,9 +20,9 @@ export default async function LeaderboardPage() {
         name: true,
         avatar: true,
         pizzaEntries: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { date: "desc" },
           take: 1,
-          select: { createdAt: true },
+          select: { date: true },
         },
       },
     }),
@@ -40,7 +40,7 @@ export default async function LeaderboardPage() {
       name: u.name,
       avatar: u.avatar,
       count: sumMap.get(u.id) ?? 0,
-      lastEntry: u.pizzaEntries[0]?.createdAt ?? null,
+      lastEntry: u.pizzaEntries[0]?.date ?? null,
       isMe: u.id === session!.user.id,
     }))
     .sort((a, b) => b.count - a.count)
