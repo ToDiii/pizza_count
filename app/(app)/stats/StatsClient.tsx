@@ -1,16 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { formatPizzaCount } from "@/lib/format";
 
 interface YearEntry {
   year: number;
   count: number;
+  countFormatted: string;
 }
 
 interface MonthEntry {
   month: number;
   label: string;
   count: number;
+}
+
+interface TopEntry {
+  name: string;
+  count: number;
+  countFormatted: string;
+  avgRating: number | null;
 }
 
 interface StatsClientProps {
@@ -22,6 +31,8 @@ interface StatsClientProps {
   avgPerMonth: string;
   currentYear: number;
   currentMonth: number;
+  topPizzaTypes: TopEntry[];
+  topLocations: TopEntry[];
 }
 
 export default function StatsClient({
@@ -33,6 +44,8 @@ export default function StatsClient({
   avgPerMonth,
   currentYear,
   currentMonth,
+  topPizzaTypes,
+  topLocations,
 }: StatsClientProps) {
   const defaultYear = years.includes(currentYear)
     ? currentYear
@@ -70,7 +83,7 @@ export default function StatsClient({
               Jahresübersicht
             </h2>
             <div className="flex flex-col gap-3">
-              {yearData.map(({ year, count }) => (
+              {yearData.map(({ year, count, countFormatted }) => (
                 <button
                   key={year}
                   onClick={() => setSelectedYear(year)}
@@ -80,9 +93,7 @@ export default function StatsClient({
                 >
                   <span
                     className={`w-12 text-sm font-bold flex-shrink-0 ${
-                      year === currentYear
-                        ? "text-[#D62828]"
-                        : "text-gray-600"
+                      year === currentYear ? "text-[#D62828]" : "text-gray-600"
                     }`}
                   >
                     {year}
@@ -93,8 +104,8 @@ export default function StatsClient({
                       style={{ width: `${(count / maxYearCount) * 100}%` }}
                     />
                   </div>
-                  <span className="w-8 text-right text-sm font-bold text-gray-700 flex-shrink-0">
-                    {count}
+                  <span className="w-10 text-right text-sm font-bold text-gray-700 flex-shrink-0">
+                    {countFormatted}
                   </span>
                 </button>
               ))}
@@ -102,12 +113,11 @@ export default function StatsClient({
           </section>
 
           {/* Monatsübersicht */}
-          <section className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20">
+          <section className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20 mb-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">
                 Monatsübersicht
               </h2>
-              {/* Year tabs */}
               {years.length > 1 && (
                 <div className="flex gap-1">
                   {years.map((y) => (
@@ -129,8 +139,7 @@ export default function StatsClient({
 
             <div className="flex flex-col gap-2">
               {monthData.map(({ month, label, count }) => {
-                const isCurrentMonth =
-                  selectedYear === currentYear && month === currentMonth;
+                const isCurrentMonth = selectedYear === currentYear && month === currentMonth;
                 const isEmpty = count === 0;
 
                 return (
@@ -160,14 +169,68 @@ export default function StatsClient({
                         />
                       )}
                     </div>
-                    <span className="w-6 text-right text-xs font-bold text-gray-600 flex-shrink-0">
-                      {count > 0 ? count : ""}
+                    <span className="w-8 text-right text-xs font-bold text-gray-600 flex-shrink-0">
+                      {count > 0 ? formatPizzaCount(count) : ""}
                     </span>
                   </div>
                 );
               })}
             </div>
           </section>
+
+          {/* Top Pizza-Sorten */}
+          {topPizzaTypes.length > 0 && (
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20 mb-4">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Top Pizza-Sorten
+              </h2>
+              <div className="flex flex-col gap-3">
+                {topPizzaTypes.map(({ name, countFormatted, avgRating }) => (
+                  <div key={name} className="flex items-center gap-3">
+                    <span className="text-xl flex-shrink-0">🍕</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
+                      {avgRating && (
+                        <p className="text-xs text-gray-400">
+                          Ø {"⭐".repeat(Math.round(avgRating))} ({avgRating.toFixed(1)})
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-sm font-bold text-[#D62828] flex-shrink-0">
+                      {countFormatted}×
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Top Orte */}
+          {topLocations.length > 0 && (
+            <section className="bg-white rounded-2xl p-5 shadow-sm border border-[#F7B731]/20">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                Top Orte
+              </h2>
+              <div className="flex flex-col gap-3">
+                {topLocations.map(({ name, countFormatted, avgRating }) => (
+                  <div key={name} className="flex items-center gap-3">
+                    <span className="text-xl flex-shrink-0">📍</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
+                      {avgRating && (
+                        <p className="text-xs text-gray-400">
+                          Ø {"⭐".repeat(Math.round(avgRating))} ({avgRating.toFixed(1)})
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-sm font-bold text-[#D62828] flex-shrink-0">
+                      {countFormatted}×
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>

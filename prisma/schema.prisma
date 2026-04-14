@@ -16,6 +16,7 @@ model User {
   name         String
   passwordHash String
   role         String         @default("USER")
+  avatar       String         @default("🍕")
   createdAt    DateTime       @default(now())
   pizzaEntries PizzaEntry[]
   achievements Achievement[]
@@ -24,7 +25,11 @@ model User {
 model PizzaEntry {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+  amount    Float    @default(1.0)
   note      String?
+  pizzaType String?
+  location  String?
+  rating    Int?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
