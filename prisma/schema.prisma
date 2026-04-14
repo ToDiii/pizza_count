@@ -1,0 +1,39 @@
+// Pizza Count – Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  role         String         @default("USER")
+  createdAt    DateTime       @default(now())
+  pizzaEntries PizzaEntry[]
+  achievements Achievement[]
+}
+
+model PizzaEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  note      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
