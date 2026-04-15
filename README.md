@@ -4,25 +4,42 @@ Eine persönliche Web-App zum Tracken aller gemeinsam gegessenen Pizzen.
 
 ## Features
 
-- **Pizza-Log**: Jeden Pizza-Abend mit Datum, Notiz und (optional) Bewertung eintragen
-- **Achievements/Badges**: Meilenstein-Abzeichen für erreichte Pizza-Counts
-- **Leaderboard**: Wer hat mehr gegessen?
-- **Animationen**: Konfetti & Reaktionen beim Hinzufügen einer Pizza
+- **Pizza-Log**: Jeden Pizza-Abend mit Datum, Sorte, Ort, Bewertung und Notiz eintragen
+- **Pizza teilen**: Mehrere User teilen sich eine Pizza (automatische Aufteilung)
+- **Rangliste & Abzeichen**: Wer hat mehr gegessen? + Meilenstein-Badges auf einer Seite
+- **Statistik**: Monat/Jahr-Übersicht, Top Sorten, Top Orte
+- **Animationen**: Pizzaregen beim Hinzufügen
 - **Benutzerverwaltung**: Admin-Rolle und Standard-User
-- **Responsive**: Funktioniert auf Handy, Tablet und PC
+- **PWA**: Installierbar auf iOS und Android (Homebildschirm-Icon, Safe Area)
+- **Responsive**: Optimiert für Handy, Tablet und PC
 
-## Geplante Erweiterungen
+## Navigation
 
-- Bewertungssystem (Ort, Pizza-Sorte, Sterne-Bewertung)
-- Google Maps Integration für Ort-Verlinkung
+### Mobile Bottom Bar
+| Position | Tab | Funktion |
+|----------|-----|----------|
+| 1 | 🍕 Zuhause | Dashboard mit eigenem Count + Feed |
+| 2 | 🏆 Rangliste | Rangliste (Tab 1) + Abzeichen (Tab 2) |
+| 3 | 🍕 Eintragen | Pizza-Eintrag Bottom Sheet (Center-Button) |
+| 4 | 📊 Statistik | Statistik-Seite |
+| 5 | ☰ Mehr | Drawer-Menü |
+
+### Mehr-Drawer
+- 👤 Profil
+- ⚙️ Admin *(nur für Admins)*
+- ℹ️ Über die App
+- 🚪 Abmelden
+
+### Desktop Sidebar
+Zuhause · Rangliste · Statistik · Profil · Über die App · Admin *(nur für Admins)*
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS v4
 - **Animationen**: Framer Motion
 - **Datenbank**: SQLite via Prisma ORM
-- **Auth**: Auth.js (Credentials Provider)
+- **Auth**: Auth.js v5 (Credentials Provider)
 - **Deployment**: Docker Compose
 
 ## Setup & Entwicklung
@@ -33,6 +50,9 @@ npm install
 
 # Datenbank initialisieren
 npx prisma migrate dev
+
+# Icons generieren (einmalig)
+npm run generate-icons
 
 # Entwicklungsserver starten
 npm run dev
