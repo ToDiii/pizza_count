@@ -100,6 +100,30 @@ Admins können manuelle Badges/Abzeichen erstellen und an User vergeben:
 
 ---
 
+## Phase 4 – Geplant
+
+### Statistik-Filter (⬜ Geplant)
+- Filter oben auf /stats: "Nur ich" / "Alle" / individuelle User (Mehrfachauswahl)
+- Alle Charts reagieren auf Filter
+- Admins sehen alle User, Standard-User nur sich + "Gemeinsam"
+- Vergleichs-Chart: Balken nebeneinander pro Monat, je Farbe pro User
+- Filterauswahl in URL: ?users=max,lisa
+
+### Admin-Badges manuell erstellen (⬜ Geplant)
+- Admins können Badges mit Emoji, Name, Beschreibung erstellen
+- Zwei Typen: automatisch (Meilenstein) und manuell (Admin-Vergabe)
+- UI im Admin-Panel
+
+### Merge/Edit für Listen-Einträge (⬜ Geplant)
+- Admins können zwei Sorte/Ort-Einträge zusammenführen
+- z.B. "salami" + "Salami" → "Salami" (alle bestehenden Einträge werden umgeschrieben)
+
+### Dark Mode (⬜ Geplant)
+### PWA Push Notifications (⬜ Geplant)
+### Statistik Export als CSV (⬜ Geplant)
+
+---
+
 ## Deployment-Checkliste 🐳
 
 - [ ] LXC auf Proxmox erstellen (Debian, 512 MB RAM, 8 GB Disk)
