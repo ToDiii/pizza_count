@@ -1,23 +1,71 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import { APP_VERSION } from "@/lib/version";
+import { AboutClient } from "./AboutClient";
+
+interface ChangelogSection {
+  category: string;
+  items: string[];
+}
+
+interface ChangelogEntry {
+  version: string;
+  date: string;
+  sections: ChangelogSection[];
+}
+
+function parseChangelog(content: string): ChangelogEntry[] {
+  const entries: ChangelogEntry[] = [];
+  const lines = content.split("\n");
+
+  let currentEntry: ChangelogEntry | null = null;
+  let currentSection: ChangelogSection | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Version header: ## [1.3.0] - 2026-04-14
+    const versionMatch = trimmed.match(/^## \[(.+?)\] - (.+)$/);
+    if (versionMatch) {
+      if (currentSection && currentEntry) {
+        currentEntry.sections.push(currentSection);
+        currentSection = null;
+      }
+      if (currentEntry) entries.push(currentEntry);
+      currentEntry = { version: versionMatch[1], date: versionMatch[2], sections: [] };
+      continue;
+    }
+
+    // Section header: ### Added
+    const sectionMatch = trimmed.match(/^### (.+)$/);
+    if (sectionMatch && currentEntry) {
+      if (currentSection) currentEntry.sections.push(currentSection);
+      currentSection = { category: sectionMatch[1], items: [] };
+      continue;
+    }
+
+    // List item: - item
+    if (trimmed.startsWith("- ") && currentSection) {
+      currentSection.items.push(trimmed.slice(2));
+    }
+  }
+
+  // Flush last entry
+  if (currentSection && currentEntry) currentEntry.sections.push(currentSection);
+  if (currentEntry) entries.push(currentEntry);
+
+  return entries;
+}
 
 export default function AboutPage() {
-  return (
-    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#D62828]">ℹ️ Über die App</h1>
-      </div>
+  let changelogEntries: ChangelogEntry[] = [];
 
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-[#F7B731]/20 text-center">
-        <div className="text-7xl mb-4">🍕</div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">Pizza Count</h2>
-        <p className="text-sm text-gray-400 mb-5">Version {APP_VERSION}</p>
-        <p className="text-gray-600 text-sm leading-relaxed mb-8">
-          Trackt jede gemeinsam gegessene Pizza.
-          <br />
-          Weil jede Pizza zählt.
-        </p>
-        <p className="text-gray-500 text-sm">Made with 🍕 by Max</p>
-      </div>
-    </div>
-  );
+  try {
+    const content = readFileSync(join(process.cwd(), "CHANGELOG.md"), "utf-8");
+    changelogEntries = parseChangelog(content);
+  } catch {
+    // CHANGELOG.md not found or unreadable – show empty state
+  }
+
+  return <AboutClient version={APP_VERSION} changelogEntries={changelogEntries} />;
 }
