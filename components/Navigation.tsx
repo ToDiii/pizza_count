@@ -174,14 +174,14 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
               onClick={() => setDrawerOpen(false)}
             />
             <motion.div
-              className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-64 bg-white shadow-2xl flex flex-col p-5"
+              className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col items-center px-6 py-5"
               style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 400, damping: 40 }}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 w-full">
                 <h2 className="text-lg font-bold text-[#D62828]">🍕 Menü</h2>
                 <button
                   onClick={() => setDrawerOpen(false)}
@@ -192,11 +192,11 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                 </button>
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col items-center gap-1 w-full">
                 <Link
                   href="/profile"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
                     pathname === "/profile"
                       ? "bg-[#D62828] text-white"
                       : "text-gray-700 hover:bg-[#F7B731]/20"
@@ -210,7 +210,7 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                   <Link
                     href="/admin"
                     onClick={() => setDrawerOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
                       pathname === "/admin"
                         ? "bg-[#D62828] text-white"
                         : "text-gray-700 hover:bg-[#F7B731]/20"
@@ -224,7 +224,7 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                 <Link
                   href="/about"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
                     pathname === "/about"
                       ? "bg-[#D62828] text-white"
                       : "text-gray-700 hover:bg-[#F7B731]/20"
@@ -235,11 +235,11 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                 </Link>
               </div>
 
-              <div className="mt-auto">
+              <div className="mt-auto w-full">
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-[#D62828] transition-colors min-h-[48px]"
+                    className="w-full flex flex-row items-center justify-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-[#D62828] transition-colors min-h-[52px]"
                   >
                     <span className="text-xl">🚪</span>
                     Abmelden

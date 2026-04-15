@@ -88,6 +88,7 @@
 - ✅ Pizza-Sharing: mehrere User teilen sich eine Pizza (sessionId, split amount)
 - ✅ Backdating: Datum beim Eintragen wählbar
 - ✅ Build-Version im Profil + /about Seite
+- ✅ Hamburger Drawer zentriert auf Mobile
 - [ ] Dark Mode
 - [ ] Push Notifications: „Zeit für Pizza?" (optional)
 - [ ] Export: eigene Einträge als CSV
