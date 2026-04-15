@@ -32,6 +32,21 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        {/* Block all mobile zoom: pinch, double-tap, keyboard-triggered */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+          document.addEventListener('gesturechange', function(e) { e.preventDefault(); });
+          document.addEventListener('gestureend', function(e) { e.preventDefault(); });
+          document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) e.preventDefault();
+          }, { passive: false });
+          var lastTouchEnd = 0;
+          document.addEventListener('touchend', function(e) {
+            var now = Date.now();
+            if (now - lastTouchEnd <= 300) e.preventDefault();
+            lastTouchEnd = now;
+          }, false);
+        `}} />
       </head>
       <body className="min-h-full flex flex-col bg-[#FFF8F0] text-[#1a1a1a]">
         {children}

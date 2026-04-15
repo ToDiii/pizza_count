@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { addPizzaEntry, getPizzaTypeOptions, getLocationOptions, addPizzaTypeOption, addLocationOption } from "@/lib/actions";
 import { SmartCombobox } from "./SmartCombobox";
@@ -45,10 +45,24 @@ interface AddPizzaButtonProps {
   users?: User[];
   currentUserId?: string;
   onSuccess?: (amount: number) => void;
+  /** Controlled mode: parent controls sheet visibility */
+  open?: boolean;
+  /** Controlled mode: called when the sheet requests to close */
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizzaButtonProps) {
-  const [showSheet, setShowSheet] = useState(false);
+export function AddPizzaButton({
+  users = [],
+  currentUserId,
+  onSuccess,
+  open: controlledOpen,
+  onOpenChange,
+}: AddPizzaButtonProps) {
+  const isControlled = controlledOpen !== undefined;
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const sheetVisible = isControlled ? (controlledOpen ?? false) : internalOpen;
+
   const [amount, setAmount] = useState(1);
   const [rating, setRating] = useState(0);
   const [pizzaType, setPizzaType] = useState("");
@@ -66,6 +80,20 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
   const { toast, showToast, hideToast } = useToast();
   const sheetRef = useRef<HTMLDivElement>(null);
 
+  // In controlled mode, fetch options whenever the sheet opens
+  useEffect(() => {
+    if (isControlled && controlledOpen) {
+      Promise.all([getPizzaTypeOptions(), getLocationOptions()]).then(
+        ([types, locs]) => {
+          setPizzaTypeOptions(types);
+          setLocationOptions(locs);
+        }
+      );
+      // Reset selected users to current user when opening
+      setSelectedUserIds(currentUserId ? [currentUserId] : []);
+    }
+  }, [isControlled, controlledOpen, currentUserId]);
+
   function resetForm() {
     setAmount(1);
     setRating(0);
@@ -77,8 +105,17 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
     setShowDateInput(false);
   }
 
+  function closeSheet() {
+    resetForm();
+    if (isControlled) {
+      onOpenChange?.(false);
+    } else {
+      setInternalOpen(false);
+    }
+  }
+
   async function openSheet() {
-    setShowSheet(true);
+    if (!isControlled) setInternalOpen(true);
     const [types, locs] = await Promise.all([
       getPizzaTypeOptions(),
       getLocationOptions(),
@@ -94,7 +131,12 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
   }
 
   function handleConfirm() {
-    const ids = selectedUserIds.length > 0 ? selectedUserIds : (currentUserId ? [currentUserId] : undefined);
+    const ids =
+      selectedUserIds.length > 0
+        ? selectedUserIds
+        : currentUserId
+        ? [currentUserId]
+        : undefined;
     startTransition(async () => {
       const result = await addPizzaEntry({
         amount,
@@ -109,8 +151,7 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
         showToast(result.error, "error");
         return;
       }
-      setShowSheet(false);
-      resetForm();
+      closeSheet();
       setShowRain(true);
     });
   }
@@ -131,22 +172,24 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
         <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
 
-      {/* Main pizza button */}
-      <motion.button
-        onClick={openSheet}
-        whileTap={{ scale: 0.95 }}
-        whileHover={{ scale: 1.03 }}
-        className="relative w-full max-w-xs mx-auto flex flex-col items-center justify-center gap-3 bg-[#D62828] hover:bg-[#b82020] text-white font-bold text-xl rounded-3xl shadow-xl transition-colors cursor-pointer"
-        style={{ minHeight: "140px" }}
-        aria-label="Pizza hinzufügen"
-      >
-        <span className="text-6xl">🍕</span>
-        <span>+1 Pizza</span>
-      </motion.button>
+      {/* Trigger button – only rendered in uncontrolled mode */}
+      {!isControlled && (
+        <motion.button
+          onClick={openSheet}
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.03 }}
+          className="relative w-full max-w-xs mx-auto flex flex-col items-center justify-center gap-3 bg-[#D62828] hover:bg-[#b82020] text-white font-bold text-xl rounded-3xl shadow-xl transition-colors cursor-pointer"
+          style={{ minHeight: "140px" }}
+          aria-label="Pizza hinzufügen"
+        >
+          <span className="text-6xl">🍕</span>
+          <span>+1 Pizza</span>
+        </motion.button>
+      )}
 
       {/* Bottom sheet */}
       <AnimatePresence>
-        {showSheet && (
+        {sheetVisible && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -154,7 +197,7 @@ export function AddPizzaButton({ users = [], currentUserId, onSuccess }: AddPizz
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setShowSheet(false); resetForm(); }}
+              onClick={closeSheet}
             />
 
             {/* Sheet */}
