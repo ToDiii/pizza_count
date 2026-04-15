@@ -48,6 +48,11 @@
 ### Mobile
 - ✅ Mobile Viewport Zoom Fix
 - ✅ Bottom Tab Bar (4 Tabs) + Hamburger Drawer
+- ✅ Navigation Restructure (Profil ins Drawer-Menü)
+- ✅ Scrollbars ausgeblendet (alle Browser)
+- ✅ Alle mobilen Zoom-Methoden blockiert (Pinch, Double-Tap, Keyboard)
+- ✅ Center Button Label Alignment Fix (Icon schwebt, Label bleibt auf gleicher Baseline)
+- ✅ Rangliste + Abzeichen zu einer Seite zusammengeführt (Tab-Switcher)
 
 ---
 

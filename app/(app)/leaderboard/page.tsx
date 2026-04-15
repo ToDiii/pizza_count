@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { formatPizzaCount } from "@/lib/format";
+import { ACHIEVEMENT_DEFINITIONS } from "@/lib/achievements";
+import { LeaderboardClient } from "./LeaderboardClient";
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("de-DE", {
@@ -12,8 +13,9 @@ function formatDate(date: Date): string {
 
 export default async function LeaderboardPage() {
   const session = await auth();
+  const userId = session!.user.id;
 
-  const [users, pizzaSums] = await Promise.all([
+  const [users, pizzaSums, unlockedList, totalAgg] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true,
@@ -30,9 +32,13 @@ export default async function LeaderboardPage() {
       by: ["userId"],
       _sum: { amount: true },
     }),
+    prisma.achievement.findMany({ where: { userId } }),
+    prisma.pizzaEntry.aggregate({ where: { userId }, _sum: { amount: true } }),
   ]);
 
   const sumMap = new Map(pizzaSums.map((s) => [s.userId, s._sum.amount ?? 0]));
+  const pizzaTotal = totalAgg._sum.amount ?? 0;
+  const unlockedMap = new Map(unlockedList.map((a) => [a.type, a.unlockedAt]));
 
   const ranked = users
     .map((u) => ({
@@ -40,77 +46,34 @@ export default async function LeaderboardPage() {
       name: u.name,
       avatar: u.avatar,
       count: sumMap.get(u.id) ?? 0,
-      lastEntry: u.pizzaEntries[0]?.date ?? null,
-      isMe: u.id === session!.user.id,
+      lastEntry: u.pizzaEntries[0]?.date
+        ? formatDate(u.pizzaEntries[0].date)
+        : null,
+      isMe: u.id === userId,
     }))
     .sort((a, b) => b.count - a.count)
     .map((u, index) => ({ ...u, rank: index + 1 }));
 
-  const medals = ["🥇", "🥈", "🥉"];
+  const achievements = ACHIEVEMENT_DEFINITIONS.map((def) => {
+    const unlockedAt = unlockedMap.get(def.type);
+    return {
+      type: def.type,
+      emoji: def.emoji,
+      name: def.name,
+      description: def.description,
+      required: def.required,
+      isUnlocked: !!unlockedAt,
+      unlockedAt: unlockedAt ? formatDate(new Date(unlockedAt)) : null,
+      progress: Math.min(pizzaTotal, def.required),
+    };
+  });
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#D62828]">🏆 Rangliste</h1>
-        <p className="text-gray-500 text-sm mt-1">Wer hat mehr Pizzen gegessen?</p>
-      </div>
-
-      {ranked.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-5xl mb-3">🍕</div>
-          <p className="text-gray-500">Noch keine Einträge.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {ranked.map((user) => (
-            <div
-              key={user.id}
-              className={`bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-4 transition-all ${
-                user.isMe
-                  ? "border-[#D62828] ring-2 ring-[#D62828]/20"
-                  : "border-[#F7B731]/20"
-              }`}
-            >
-              {/* Rank */}
-              <div className="w-10 text-center flex-shrink-0">
-                {user.rank <= 3 ? (
-                  <span className="text-2xl">{medals[user.rank - 1]}</span>
-                ) : (
-                  <span className="text-lg font-bold text-gray-400">#{user.rank}</span>
-                )}
-              </div>
-
-              {/* Avatar */}
-              <div className="text-2xl flex-shrink-0">{user.avatar}</div>
-
-              {/* Name & last entry */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-800 truncate">{user.name}</p>
-                  {user.isMe && (
-                    <span className="text-xs bg-[#D62828] text-white px-2 py-0.5 rounded-full flex-shrink-0">
-                      Du
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {user.lastEntry
-                    ? `Zuletzt: ${formatDate(user.lastEntry)}`
-                    : "Noch keine Pizza"}
-                </p>
-              </div>
-
-              {/* Count */}
-              <div className="text-right flex-shrink-0">
-                <p className="text-2xl font-black text-[#D62828]">
-                  {formatPizzaCount(user.count)}
-                </p>
-                <p className="text-xs text-gray-400">Pizzen</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <LeaderboardClient
+      users={ranked}
+      achievements={achievements}
+      totalAchievements={ACHIEVEMENT_DEFINITIONS.length}
+      unlockedCount={unlockedMap.size}
+    />
   );
 }

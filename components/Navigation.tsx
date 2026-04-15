@@ -7,23 +7,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { logoutAction } from "@/lib/actions";
 import { AddPizzaButton } from "./AddPizzaButton";
 
-// Desktop sidebar links
+// Desktop sidebar links (Abzeichen merged into Rangliste page)
 const sidebarItems = [
   { href: "/", label: "Zuhause", icon: "🍕" },
   { href: "/leaderboard", label: "Rangliste", icon: "🏆" },
-  { href: "/achievements", label: "Abzeichen", icon: "🎖️" },
   { href: "/stats", label: "Statistik", icon: "📊" },
   { href: "/profile", label: "Profil", icon: "👤" },
   { href: "/about", label: "Über die App", icon: "ℹ️" },
 ];
 
-// Mobile bottom nav (left of center add button)
+// Mobile bottom nav – left of the center add button
 const leftTabs = [
   { href: "/", label: "Zuhause", icon: "🍕" },
   { href: "/leaderboard", label: "Rangliste", icon: "🏆" },
 ];
 
-// Mobile bottom nav (right of center add button)
+// Mobile bottom nav – right of the center add button
 const rightTabs = [
   { href: "/stats", label: "Statistik", icon: "📊" },
 ];
@@ -111,16 +110,22 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
           </Link>
         ))}
 
-        {/* Center add button */}
+        {/* Center add button
+            The icon is absolutely positioned above its layout placeholder so it
+            visually pops up while the label stays on the same baseline as sibling
+            tab labels. The placeholder (h-7 = 28px) matches the emoji icon height
+            used in sibling tabs, keeping justify-center centring identical. */}
         <button
           onClick={() => setAddSheetOpen(true)}
           aria-label="Pizza hinzufügen"
-          className="flex-1 flex flex-col items-center justify-center py-1 min-h-[56px]"
+          className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[56px]"
         >
-          <div className="w-12 h-12 -mt-3 bg-[#D62828] rounded-2xl flex items-center justify-center shadow-lg shadow-[#D62828]/30">
-            <span className="text-2xl leading-none">🍕</span>
+          <div className="relative h-7 w-12 flex items-center justify-center">
+            <div className="absolute -top-2 w-12 h-12 bg-[#D62828] rounded-2xl flex items-center justify-center shadow-lg shadow-[#D62828]/30">
+              <span className="text-2xl leading-none">🍕</span>
+            </div>
           </div>
-          <span className="text-[10px] font-medium text-[#D62828] mt-0.5">Eintragen</span>
+          <span className="text-[10px] font-medium text-[#D62828]">Eintragen</span>
         </button>
 
         {/* Right tabs */}
@@ -148,7 +153,7 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
         </button>
       </nav>
 
-      {/* ── Controlled AddPizzaButton (mobile nav trigger) ────────────── */}
+      {/* ── Controlled AddPizzaButton (opened by center nav button) ──── */}
       <AddPizzaButton
         open={addSheetOpen}
         onOpenChange={setAddSheetOpen}
@@ -199,19 +204,6 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                 >
                   <span className="text-xl">👤</span>
                   Profil
-                </Link>
-
-                <Link
-                  href="/achievements"
-                  onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    pathname === "/achievements"
-                      ? "bg-[#D62828] text-white"
-                      : "text-gray-700 hover:bg-[#F7B731]/20"
-                  }`}
-                >
-                  <span className="text-xl">🎖️</span>
-                  Abzeichen
                 </Link>
 
                 {isAdmin && (
