@@ -90,6 +90,8 @@
 - ✅ Build-Version im Profil + /about Seite
 - ✅ Hamburger Drawer zentriert auf Mobile
 - ✅ Profil-Seite auf Mobile zentriert (max-w-lg mx-auto)
+- ✅ Center-Nav-Button: Icon/Label-Überlappung behoben (rounded-full, mb-1 Abstand)
+- ✅ Hamburger Drawer: abgerundete Ecken (rounded-tl-2xl rounded-bl-2xl), lucide-react Icons, Divider vor Abmelden
 - [ ] Dark Mode
 - [ ] Push Notifications: „Zeit für Pizza?" (optional)
 - [ ] Export: eigene Einträge als CSV
