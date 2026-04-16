@@ -1,5 +1,23 @@
 # Changelog
 
+<!-- WICHTIG: Bei jedem PR muss dieser Changelog aktualisiert werden! -->
+
+## [1.3.3] - 2026-04-16
+### Changed
+- Changelog wird ab sofort bei jedem PR aktualisiert
+
+## [1.3.2] - 2026-04-16
+### Fixed
+- Center Nav Button: Icon überlappt Label nicht mehr
+- Hamburger Menü: Abgerundete Ecken, einheitliche Ausrichtung, Lucide Icons, Backdrop
+- Scrollbar Artefakte auf Mobile behoben
+
+## [1.3.1] - 2026-04-16
+### Fixed
+- Rangliste + Abzeichen als Tabs zusammengeführt
+- Scrollbar Artefakte entfernt
+- Profil-Seite Zentrierung korrigiert
+
 ## [1.3.0] - 2026-04-14
 ### Added
 - PWA Icons und Manifest (Homebildschirm-Installation)
