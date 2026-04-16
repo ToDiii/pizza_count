@@ -44,23 +44,23 @@ export function LeaderboardClient({
   return (
     <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-xl mx-auto">
       {/* Tab switcher */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-6 bg-gray-100 rounded-full p-1">
         <button
           onClick={() => setActiveTab("rangliste")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
+          className={`flex-1 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === "rangliste"
               ? "bg-[#D62828] text-white"
-              : "bg-white text-gray-600 border border-gray-200"
+              : "text-gray-500"
           }`}
         >
           🏆 Rangliste
         </button>
         <button
           onClick={() => setActiveTab("abzeichen")}
-          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors min-h-[44px] ${
+          className={`flex-1 py-2 rounded-full text-sm font-medium transition-colors ${
             activeTab === "abzeichen"
               ? "bg-[#D62828] text-white"
-              : "bg-white text-gray-600 border border-gray-200"
+              : "text-gray-500"
           }`}
         >
           🎖️ Abzeichen
