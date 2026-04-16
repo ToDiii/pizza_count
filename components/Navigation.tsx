@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { User, Settings, Info, LogOut } from "lucide-react";
 import { logoutAction } from "@/lib/actions";
 import { AddPizzaButton } from "./AddPizzaButton";
 
@@ -54,6 +55,13 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
       pathname === href
         ? "bg-[#D62828] text-white"
         : "text-gray-700 hover:bg-[#F7B731]/20"
+    }`;
+
+  const drawerLinkClass = (href: string) =>
+    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors mx-2 min-h-[52px] ${
+      pathname === href
+        ? "bg-[#D62828] text-white"
+        : "text-gray-700 hover:bg-gray-50"
     }`;
 
   return (
@@ -110,20 +118,14 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
           </Link>
         ))}
 
-        {/* Center add button
-            The icon is absolutely positioned above its layout placeholder so it
-            visually pops up while the label stays on the same baseline as sibling
-            tab labels. The placeholder (h-7 = 28px) matches the emoji icon height
-            used in sibling tabs, keeping justify-center centring identical. */}
+        {/* Center add button – icon pops above bar, label sits below */}
         <button
           onClick={() => setAddSheetOpen(true)}
           aria-label="Pizza hinzufügen"
-          className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[56px]"
+          className="flex-1 flex flex-col items-center justify-end pb-1 min-h-[56px]"
         >
-          <div className="relative h-7 w-12 flex items-center justify-center">
-            <div className="absolute -top-2 w-12 h-12 bg-[#D62828] rounded-2xl flex items-center justify-center shadow-lg shadow-[#D62828]/30">
-              <span className="text-2xl leading-none">🍕</span>
-            </div>
+          <div className="bg-[#D62828] rounded-full p-3 mb-1 -mt-5 shadow-lg shadow-[#D62828]/30">
+            <span className="text-2xl leading-none">🍕</span>
           </div>
           <span className="text-[10px] font-medium text-[#D62828]">Eintragen</span>
         </button>
@@ -166,6 +168,7 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
       <AnimatePresence>
         {drawerOpen && (
           <>
+            {/* Backdrop */}
             <motion.div
               className="md:hidden fixed inset-0 bg-black/40 z-50"
               initial={{ opacity: 0 }}
@@ -173,36 +176,36 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
               exit={{ opacity: 0 }}
               onClick={() => setDrawerOpen(false)}
             />
+
+            {/* Drawer panel – slides in from right, rounded left corners */}
             <motion.div
-              className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col items-center px-6 py-5"
+              className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-[280px] bg-white shadow-2xl flex flex-col rounded-tl-2xl rounded-bl-2xl overflow-hidden"
               style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)" }}
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 400, damping: 40 }}
             >
-              <div className="flex items-center justify-between mb-6 w-full">
-                <h2 className="text-lg font-bold text-[#D62828]">🍕 Menü</h2>
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <h2 className="text-xl font-bold text-[#D62828]">🍕 Menü</h2>
                 <button
                   onClick={() => setDrawerOpen(false)}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 transition-colors"
                   aria-label="Menü schließen"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex flex-col items-center gap-1 w-full">
+              {/* Nav items */}
+              <div className="flex flex-col gap-1 pt-3 flex-1">
                 <Link
                   href="/profile"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    pathname === "/profile"
-                      ? "bg-[#D62828] text-white"
-                      : "text-gray-700 hover:bg-[#F7B731]/20"
-                  }`}
+                  className={drawerLinkClass("/profile")}
                 >
-                  <span className="text-xl">👤</span>
+                  <User size={18} />
                   Profil
                 </Link>
 
@@ -210,13 +213,9 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                   <Link
                     href="/admin"
                     onClick={() => setDrawerOpen(false)}
-                    className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      pathname === "/admin"
-                        ? "bg-[#D62828] text-white"
-                        : "text-gray-700 hover:bg-[#F7B731]/20"
-                    }`}
+                    className={drawerLinkClass("/admin")}
                   >
-                    <span className="text-xl">⚙️</span>
+                    <Settings size={18} />
                     Admin
                   </Link>
                 )}
@@ -224,24 +223,22 @@ export function Navigation({ isAdmin, users = [], currentUserId }: NavigationPro
                 <Link
                   href="/about"
                   onClick={() => setDrawerOpen(false)}
-                  className={`flex flex-row items-center justify-center gap-3 w-full min-h-[52px] px-3 py-3 rounded-xl text-sm font-medium transition-colors ${
-                    pathname === "/about"
-                      ? "bg-[#D62828] text-white"
-                      : "text-gray-700 hover:bg-[#F7B731]/20"
-                  }`}
+                  className={drawerLinkClass("/about")}
                 >
-                  <span className="text-xl">ℹ️</span>
+                  <Info size={18} />
                   Über die App
                 </Link>
               </div>
 
-              <div className="mt-auto w-full">
+              {/* Divider + Logout */}
+              <div className="px-2 pb-4">
+                <div className="border-t border-gray-100 mb-2" />
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="w-full flex flex-row items-center justify-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-[#D62828] transition-colors min-h-[52px]"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#D62828] hover:bg-red-50 transition-colors min-h-[52px]"
                   >
-                    <span className="text-xl">🚪</span>
+                    <LogOut size={18} />
                     Abmelden
                   </button>
                 </form>
