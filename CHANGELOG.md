@@ -2,6 +2,11 @@
 
 <!-- WICHTIG: Bei jedem PR muss dieser Changelog aktualisiert werden! -->
 
+## [1.3.4] - 2026-04-16
+### Fixed
+- Profil-Seite auf Mobile nicht mehr abgeschnitten (flex min-w-0 + w-full layout fix)
+- Leaderboard-Seite gleicher Layout-Fix angewendet
+
 ## [1.3.3] - 2026-04-16
 ### Changed
 - Changelog wird ab sofort bei jedem PR aktualisiert

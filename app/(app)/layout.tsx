@@ -23,7 +23,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen">
       <Navigation isAdmin={isAdmin} users={users} currentUserId={currentUserId} />
       <main
-        className="flex-1 md:ml-56 md:pb-0"
+        className="flex-1 min-w-0 overflow-x-hidden md:ml-56 md:pb-0"
         style={{ paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}
       >
         {children}

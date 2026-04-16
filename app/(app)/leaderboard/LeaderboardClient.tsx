@@ -42,7 +42,7 @@ export function LeaderboardClient({
   const [activeTab, setActiveTab] = useState<"rangliste" | "abzeichen">("rangliste");
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-xl mx-auto">
+    <div className="min-h-screen bg-[#FFF8F0] w-full"><div className="max-w-xl mx-auto px-4 py-6">
       {/* Tab switcher */}
       <div className="flex gap-2 mb-6 bg-gray-100 rounded-full p-1">
         <button
@@ -198,6 +198,6 @@ export function LeaderboardClient({
           </div>
         </>
       )}
-    </div>
+    </div></div>
   );
 }
