@@ -64,7 +64,8 @@ export default function ProfileClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-lg mx-auto">
+    <div className="min-h-screen bg-[#FFF8F0] w-full">
+      <div className="max-w-lg mx-auto px-4 py-6">
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
@@ -187,6 +188,7 @@ export default function ProfileClient({
       <p className="text-center text-xs text-gray-400 mt-2">
         Pizza Count v{APP_VERSION}
       </p>
+      </div>
     </div>
   );
 }
