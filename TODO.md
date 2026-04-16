@@ -49,10 +49,10 @@
 - ✅ Mobile Viewport Zoom Fix
 - ✅ Bottom Tab Bar (4 Tabs) + Hamburger Drawer
 - ✅ Navigation Restructure (Profil ins Drawer-Menü)
-- ✅ Scrollbars ausgeblendet (alle Browser)
+- ✅ Scrollbars ausgeblendet (alle Browser, inkl. globaler *::-webkit-scrollbar + overflow-x hidden)
 - ✅ Alle mobilen Zoom-Methoden blockiert (Pinch, Double-Tap, Keyboard)
 - ✅ Center Button Label Alignment Fix (Icon schwebt, Label bleibt auf gleicher Baseline)
-- ✅ Rangliste + Abzeichen zu einer Seite zusammengeführt (Tab-Switcher)
+- ✅ Rangliste + Abzeichen zu einer Seite zusammengeführt (Tab-Switcher, Pill-Style)
 
 ---
 
@@ -89,6 +89,7 @@
 - ✅ Backdating: Datum beim Eintragen wählbar
 - ✅ Build-Version im Profil + /about Seite
 - ✅ Hamburger Drawer zentriert auf Mobile
+- ✅ Profil-Seite auf Mobile zentriert (max-w-lg mx-auto)
 - [ ] Dark Mode
 - [ ] Push Notifications: „Zeit für Pizza?" (optional)
 - [ ] Export: eigene Einträge als CSV

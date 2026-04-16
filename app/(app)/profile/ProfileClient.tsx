@@ -64,7 +64,7 @@ export default function ProfileClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-xl mx-auto">
+    <div className="min-h-screen bg-[#FFF8F0] px-4 py-6 max-w-lg mx-auto">
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
