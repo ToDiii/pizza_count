@@ -32,6 +32,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // Lockout-Check vor bcrypt (verhindert CPU-Verbrennung bei Flood)
         if (await isLoginLocked(email, ip)) {
+          console.log(
+            `auth.locked email=${email} ip=${ip} ts=${new Date().toISOString()}`
+          );
           await recordLoginAttempt(email, ip, false);
           throw new LockedError();
         }
