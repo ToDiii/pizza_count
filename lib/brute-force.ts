@@ -46,6 +46,7 @@ export async function isLoginLocked(email: string, ip: string): Promise<boolean>
 
 /**
  * Loggt einen Login-Versuch und räumt alte Einträge auf (probabilistisch).
+ * Zusätzlich: strukturiertes stdout-Log für externe Tools (CrowdSec, Loki, …).
  */
 export async function recordLoginAttempt(
   email: string,
@@ -53,6 +54,15 @@ export async function recordLoginAttempt(
   success: boolean
 ): Promise<void> {
   await prisma.loginAttempt.create({ data: { email, ip, success } });
+
+  // stdout-Log (CrowdSec-parsebar). Format stabil halten!
+  // Beispiel:
+  //   auth.success email=foo@bar.de ip=1.2.3.4 ts=2026-04-17T12:34:56.000Z
+  //   auth.failed  email=foo@bar.de ip=1.2.3.4 ts=2026-04-17T12:34:56.000Z
+  const evt = success ? "auth.success" : "auth.failed";
+  console.log(
+    `${evt} email=${email} ip=${ip} ts=${new Date().toISOString()}`
+  );
 
   // 5 % Chance: Aufräumen alter Einträge (> RETENTION_HOURS)
   if (Math.random() < 0.05) {
