@@ -66,15 +66,51 @@ docker compose up -d
 
 Die SQLite-Datei liegt in einem persistenten Volume unter `/data/db/pizza.db`.
 
-## Umgebungsvariablen
+### Optional: Continuous Backup (Litestream)
 
-Erstelle eine `.env`-Datei basierend auf `.env.example`:
+Die Compose-Datei enthält einen optionalen Litestream-Sidecar, der die SQLite-Datei
+kontinuierlich nach S3 oder Backblaze B2 repliziert.
 
-```env
-AUTH_SECRET=dein-geheimes-secret
-DATABASE_URL="file:/data/db/pizza.db"
+```bash
+# LITESTREAM_* in .env befüllen, dann:
+docker compose --profile backup up -d
 ```
 
-## Nutzer anlegen
+Konfiguration siehe `litestream.yml` und `.env.example`.
 
-Beim ersten Start kann über `/setup` ein Admin-Account angelegt werden (nur wenn noch kein Admin existiert).
+## Umgebungsvariablen
+
+Vollständige Liste siehe `.env.example`. Minimum für Self-Hosting:
+
+```env
+AUTH_SECRET=$(openssl rand -base64 32)
+DATABASE_URL="file:/data/db/pizza.db"
+AUTH_TRUST_HOST=true
+NEXTAUTH_URL=https://deine-domain.tld
+SETUP_ENABLED=true   # nach Erstlogin auf false setzen
+```
+
+## Erster Start / Admin anlegen
+
+1. Container starten – `SETUP_ENABLED=true` lassen.
+2. `/setup` im Browser öffnen und den ersten Admin-Account anlegen.
+3. In `.env` `SETUP_ENABLED=false` setzen und Container neu starten – die Route ist dann dauerhaft deaktiviert.
+
+## Sicherheit
+
+Die App ist für Self-Hosting hinter einem Cloudflare Tunnel ausgelegt.
+Eingebaute Schutzmechanismen:
+
+- **Auth.js v5** mit JWT-Session
+- **bcrypt** (Cost 12) für Passwörter
+- **Brute-Force-Schutz**: Email- und IP-Lockout mit exponentiellem Delay
+- **Zod-Validierung** aller Server-Actions
+- **Setup-Guard**: `/setup` nur solange kein Admin existiert (plus Env-Flag)
+- **CSRF** via Auth.js
+- **Prisma** (keine Raw-SQL ⇒ keine SQL-Injection)
+
+Empfehlungen zusätzlich:
+
+- Cloudflare Rate-Limiting-Rule für `/api/auth/*` (5/min/IP)
+- Regelmäßig Backups prüfen (Restore-Drill)
+- Updates zeitnah einspielen

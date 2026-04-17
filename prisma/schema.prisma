@@ -34,6 +34,10 @@ model PizzaEntry {
   sessionId String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([date])
+  @@index([sessionId])
 }
 
 model Achievement {
@@ -58,4 +62,16 @@ model LocationOption {
   name      String   @unique
   createdAt DateTime @default(now())
   createdBy String
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  ip        String
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@index([createdAt])
 }

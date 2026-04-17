@@ -2,6 +2,26 @@
 
 <!-- WICHTIG: Bei jedem PR muss dieser Changelog aktualisiert werden! -->
 
+## [1.4.0] - 2026-04-17
+### Security
+- Zod-Validierung aller Server-Actions (Amount, Rating, Date, Name, Passwort, Avatar, IDs)
+- Brute-Force-Schutz mit Email- und IP-Lockout (`LoginAttempt`-Modell, exponentielles Delay)
+- Timing-Attack-Mitigation: bcrypt läuft auch bei unbekannter Email (Dummy-Hash)
+- `/setup` gehärtet: `SETUP_ENABLED`-Flag + Admin-Exists-Check + Transaction gegen Race Condition
+- `selectedUserIds` werden serverseitig gegen die DB validiert
+- Passwort-Mindestlänge auf 12 Zeichen erhöht
+- Avatar wird serverseitig auf Länge + erlaubte Zeichen geprüft
+- Health-Endpoint pingt die DB (503 bei Ausfall)
+### Added
+- Optionaler Litestream-Sidecar für kontinuierliches SQLite-Backup nach S3/B2 (`--profile backup`)
+- Neue ENV-Variablen: `SETUP_ENABLED`, `LOGIN_EMAIL_MAX_FAILS`, `LOGIN_EMAIL_WINDOW_MIN`, `LOGIN_IP_MAX_FAILS`, `LOGIN_IP_WINDOW_MIN`, `LITESTREAM_*`
+### Changed
+- Prisma-Indices auf `PizzaEntry(userId, date, sessionId)` für schnellere Stats/Leaderboard-Queries
+- Dockerfile: konsistente `--chown`-Flags, `HEALTHCHECK` im Image, `WORKDIR` aufgeräumt
+- docker-compose: `mem_limit: 512m`, `cpus: 1.0`, Log-Rotation (10 MB × 3)
+### Fixed
+- Pizza-Eintrag-Erstellung läuft jetzt in einer Prisma-Transaction (atomar bei Shared-Pizza)
+
 ## [1.3.4] - 2026-04-16
 ### Fixed
 - Profil-Seite auf Mobile nicht mehr abgeschnitten (flex min-w-0 + w-full layout fix)

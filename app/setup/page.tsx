@@ -1,12 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import SetupForm from "./SetupForm";
+import { isSetupAllowed } from "@/lib/setup-guard";
 
 export default async function SetupPage() {
-  const count = await prisma.user.count();
-  if (count > 0) {
+  if (!(await isSetupAllowed())) {
     notFound();
   }
 

@@ -1,7 +1,18 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import {
+  getClientIp,
+  isLoginLocked,
+  recentFailureCount,
+  recordLoginAttempt,
+  slowDownOnFailure,
+} from "@/lib/brute-force";
+
+class LockedError extends CredentialsSignin {
+  code = "LOCKED";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -12,20 +23,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Passwort", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        const emailRaw = (credentials?.email as string | undefined) ?? "";
+        const password = (credentials?.password as string | undefined) ?? "";
+        const email = emailRaw.trim().toLowerCase();
+        if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        const ip = await getClientIp();
 
-        if (!user) return null;
+        // Lockout-Check vor bcrypt (verhindert CPU-Verbrennung bei Flood)
+        if (await isLoginLocked(email, ip)) {
+          await recordLoginAttempt(email, ip, false);
+          throw new LockedError();
+        }
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
+        const user = await prisma.user.findUnique({ where: { email } });
 
-        if (!passwordMatch) return null;
+        // Immer bcrypt ausführen, damit Timing keine User-Enumeration erlaubt
+        const dummyHash =
+          "$2a$12$CwTycUXWue0Thq9StjUM0uJ8d3v5GqFhLsp1kqHvBZpQnYlpQvMiu";
+        const passwordMatch = user
+          ? await bcrypt.compare(password, user.passwordHash)
+          : await bcrypt.compare(password, dummyHash);
+
+        if (!user || !passwordMatch) {
+          await recordLoginAttempt(email, ip, false);
+          const fails = await recentFailureCount(email);
+          await slowDownOnFailure(fails);
+          return null;
+        }
+
+        await recordLoginAttempt(email, ip, true);
 
         return {
           id: user.id,
