@@ -6,6 +6,19 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import {
+  addPizzaEntrySchema,
+  adminCreateUserSchema,
+  adminResetPasswordSchema,
+  avatarSchema,
+  changePasswordSchema,
+  formatZodError,
+  idSchema,
+  optionNameSchema,
+  setupSchema,
+  updateProfileSchema,
+} from "@/lib/validators";
+import { isSetupAllowed } from "@/lib/setup-guard";
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +31,9 @@ export async function loginAction(formData: FormData) {
   } catch (error) {
     const errorMessage = (error as Error)?.message ?? "";
     if (errorMessage.includes("NEXT_REDIRECT")) throw error;
+    if (errorMessage.includes("LOCKED")) {
+      return { error: "Zu viele Fehlversuche. Bitte später erneut versuchen." };
+    }
     return { error: "Ungültige E-Mail oder falsches Passwort." };
   }
 }
@@ -29,18 +45,31 @@ export async function logoutAction() {
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 export async function setupAction(formData: FormData) {
-  const count = await prisma.user.count();
-  if (count > 0) return { error: "Setup bereits abgeschlossen." };
+  if (!(await isSetupAllowed())) return { error: "Setup ist deaktiviert." };
 
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const parsed = setupSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const { name, email, password } = parsed.data;
 
-  if (!name || !email || !password) return { error: "Alle Felder sind erforderlich." };
-  if (password.length < 6) return { error: "Passwort muss mindestens 6 Zeichen lang sein." };
+  // Atomic: only create if no user exists yet. Prevents setup race.
+  try {
+    await prisma.$transaction(async (tx) => {
+      const count = await tx.user.count();
+      if (count > 0) throw new Error("SETUP_ALREADY_DONE");
+      const passwordHash = await bcrypt.hash(password, 12);
+      await tx.user.create({ data: { name, email, passwordHash, role: "ADMIN" } });
+    });
+  } catch (e) {
+    if ((e as Error).message === "SETUP_ALREADY_DONE") {
+      return { error: "Setup bereits abgeschlossen." };
+    }
+    throw e;
+  }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  await prisma.user.create({ data: { name, email, passwordHash, role: "ADMIN" } });
   await signIn("credentials", { email, password, redirectTo: "/" });
 }
 
@@ -58,30 +87,53 @@ export async function addPizzaEntry(data: {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
-  // Use noon UTC so date displays correctly regardless of user timezone
-  const entryDate = data.date ? new Date(`${data.date}T12:00:00`) : new Date();
+  const parsed = addPizzaEntrySchema.safeParse(data);
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const input = parsed.data;
 
-  const userIds =
-    data.selectedUserIds && data.selectedUserIds.length > 0
-      ? data.selectedUserIds
+  const entryDate = input.date
+    ? new Date(`${input.date}T12:00:00`)
+    : new Date();
+
+  const requestedIds =
+    input.selectedUserIds && input.selectedUserIds.length > 0
+      ? input.selectedUserIds
       : [session.user.id];
 
-  const splitAmount = data.amount / userIds.length;
+  // Validate that all user IDs exist and include current user (or current user acts for self only)
+  const users = await prisma.user.findMany({
+    where: { id: { in: requestedIds } },
+    select: { id: true },
+  });
+  if (users.length !== new Set(requestedIds).size) {
+    return { error: "Ungültige Benutzerauswahl." };
+  }
+  const userIds = users.map((u) => u.id);
+  if (!userIds.includes(session.user.id)) {
+    return { error: "Eigener Account muss beteiligt sein." };
+  }
+
+  const splitAmount = input.amount / userIds.length;
   const sessionId = userIds.length > 1 ? crypto.randomUUID() : null;
 
+  await prisma.$transaction(
+    userIds.map((userId) =>
+      prisma.pizzaEntry.create({
+        data: {
+          userId,
+          amount: splitAmount,
+          note: input.note?.trim() || null,
+          pizzaType: input.pizzaType?.trim() || null,
+          location: input.location?.trim() || null,
+          rating: input.rating ?? null,
+          date: entryDate,
+          sessionId,
+        },
+      })
+    )
+  );
+
   for (const userId of userIds) {
-    await prisma.pizzaEntry.create({
-      data: {
-        userId,
-        amount: splitAmount,
-        note: data.note?.trim() || null,
-        pizzaType: data.pizzaType?.trim() || null,
-        location: data.location?.trim() || null,
-        rating: data.rating ?? null,
-        date: entryDate,
-        sessionId,
-      },
-    });
     await checkAndUnlockAchievements(userId);
   }
 
@@ -96,11 +148,14 @@ export async function deletePizzaEntryAction(entryId: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
-  const entry = await prisma.pizzaEntry.findUnique({ where: { id: entryId } });
+  const parsed = idSchema.safeParse(entryId);
+  if (!parsed.success) return { error: "Ungültige ID." };
+
+  const entry = await prisma.pizzaEntry.findUnique({ where: { id: parsed.data } });
   if (!entry) return { error: "Eintrag nicht gefunden." };
   if (entry.userId !== session.user.id) return { error: "Keine Berechtigung." };
 
-  await prisma.pizzaEntry.delete({ where: { id: entryId } });
+  await prisma.pizzaEntry.delete({ where: { id: parsed.data } });
 
   revalidatePath("/");
   revalidatePath("/leaderboard");
@@ -206,12 +261,12 @@ export async function getLocationOptions(): Promise<string[]> {
 export async function addPizzaTypeOption(name: string): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) return;
-  const trimmed = name.trim();
-  if (!trimmed) return;
+  const parsed = optionNameSchema.safeParse(name);
+  if (!parsed.success) return;
   await prisma.pizzaTypeOption.upsert({
-    where: { name: trimmed },
+    where: { name: parsed.data },
     update: {},
-    create: { name: trimmed, createdBy: session.user.id },
+    create: { name: parsed.data, createdBy: session.user.id },
   });
   revalidatePath("/admin");
 }
@@ -219,12 +274,12 @@ export async function addPizzaTypeOption(name: string): Promise<void> {
 export async function addLocationOption(name: string): Promise<void> {
   const session = await auth();
   if (!session?.user?.id) return;
-  const trimmed = name.trim();
-  if (!trimmed) return;
+  const parsed = optionNameSchema.safeParse(name);
+  if (!parsed.success) return;
   await prisma.locationOption.upsert({
-    where: { name: trimmed },
+    where: { name: parsed.data },
     update: {},
-    create: { name: trimmed, createdBy: session.user.id },
+    create: { name: parsed.data, createdBy: session.user.id },
   });
   revalidatePath("/admin");
 }
@@ -234,13 +289,15 @@ export async function deletePizzaTypeOption(
 ): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Nicht angemeldet." };
-  const option = await prisma.pizzaTypeOption.findUnique({ where: { id } });
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { success: false, error: "Ungültige ID." };
+  const option = await prisma.pizzaTypeOption.findUnique({ where: { id: parsed.data } });
   if (!option) return { success: false, error: "Nicht gefunden." };
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (user?.role !== "ADMIN" && option.createdBy !== session.user.id) {
     return { success: false, error: "Keine Berechtigung." };
   }
-  await prisma.pizzaTypeOption.delete({ where: { id } });
+  await prisma.pizzaTypeOption.delete({ where: { id: parsed.data } });
   revalidatePath("/admin");
   return { success: true };
 }
@@ -250,13 +307,15 @@ export async function deleteLocationOption(
 ): Promise<{ success: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Nicht angemeldet." };
-  const option = await prisma.locationOption.findUnique({ where: { id } });
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { success: false, error: "Ungültige ID." };
+  const option = await prisma.locationOption.findUnique({ where: { id: parsed.data } });
   if (!option) return { success: false, error: "Nicht gefunden." };
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (user?.role !== "ADMIN" && option.createdBy !== session.user.id) {
     return { success: false, error: "Keine Berechtigung." };
   }
-  await prisma.locationOption.delete({ where: { id } });
+  await prisma.locationOption.delete({ where: { id: parsed.data } });
   revalidatePath("/admin");
   return { success: true };
 }
@@ -299,12 +358,12 @@ export async function updateProfileAction(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
-  const name = formData.get("name") as string;
-  if (!name?.trim()) return { error: "Name darf nicht leer sein." };
+  const parsed = updateProfileSchema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
 
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { name: name.trim() },
+    data: { name: parsed.data.name },
   });
 
   revalidatePath("/profile");
@@ -317,9 +376,12 @@ export async function updateAvatarAction(avatar: string) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
+  const parsed = avatarSchema.safeParse(avatar);
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+
   await prisma.user.update({
     where: { id: session.user.id },
-    data: { avatar },
+    data: { avatar: parsed.data },
   });
 
   revalidatePath("/profile");
@@ -332,12 +394,13 @@ export async function changePasswordAction(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) return { error: "Nicht angemeldet." };
 
-  const currentPassword = formData.get("currentPassword") as string;
-  const newPassword = formData.get("newPassword") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
-  if (newPassword !== confirmPassword) return { error: "Neue Passwörter stimmen nicht überein." };
-  if (newPassword.length < 6) return { error: "Neues Passwort muss mindestens 6 Zeichen lang sein." };
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const { currentPassword, newPassword } = parsed.data;
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return { error: "Benutzer nicht gefunden." };
@@ -363,12 +426,14 @@ async function requireAdmin() {
 export async function adminCreateUserAction(formData: FormData) {
   await requireAdmin();
 
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const role = (formData.get("role") as string) || "USER";
-
-  if (!name || !email || !password) return { error: "Alle Felder sind erforderlich." };
+  const parsed = adminCreateUserSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    role: formData.get("role") || "USER",
+  });
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const { name, email, password, role } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "E-Mail wird bereits verwendet." };
@@ -383,10 +448,12 @@ export async function adminCreateUserAction(formData: FormData) {
 export async function adminResetPasswordAction(formData: FormData) {
   await requireAdmin();
 
-  const userId = formData.get("userId") as string;
-  const newPassword = formData.get("newPassword") as string;
-
-  if (!newPassword || newPassword.length < 6) return { error: "Passwort muss mindestens 6 Zeichen lang sein." };
+  const parsed = adminResetPasswordSchema.safeParse({
+    userId: formData.get("userId"),
+    newPassword: formData.get("newPassword"),
+  });
+  if (!parsed.success) return { error: formatZodError(parsed.error) };
+  const { userId, newPassword } = parsed.data;
 
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
@@ -397,7 +464,9 @@ export async function adminResetPasswordAction(formData: FormData) {
 
 export async function adminDeleteUserAction(formData: FormData) {
   const session = await requireAdmin();
-  const userId = formData.get("userId") as string;
+  const parsed = idSchema.safeParse(formData.get("userId"));
+  if (!parsed.success) return { error: "Ungültige ID." };
+  const userId = parsed.data;
 
   if (userId === session.user.id) return { error: "Du kannst dich nicht selbst löschen." };
 
@@ -411,7 +480,9 @@ export async function adminDeleteEntryAction(
   entryId: string
 ): Promise<{ success: boolean; error?: string }> {
   await requireAdmin();
-  await prisma.pizzaEntry.delete({ where: { id: entryId } });
+  const parsed = idSchema.safeParse(entryId);
+  if (!parsed.success) return { success: false, error: "Ungültige ID." };
+  await prisma.pizzaEntry.delete({ where: { id: parsed.data } });
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/leaderboard");

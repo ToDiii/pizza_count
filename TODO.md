@@ -36,44 +36,28 @@
 - ✅ Anzeige: Platz, Avatar, Name, Count, letzter Eintrag
 
 ### Achievements / Badges
-- ✅ Badge-System implementieren (wird automatisch vergeben)
-- ✅ Meilenstein-Badges:
-  - 🍕 „Erste Pizza" – 1. Eintrag
-  - 🔟 „10er Club" – 10 Pizzen
-  - 🥇 „50er Club" – 50 Pizzen
-  - 💯 „Centurion" – 100 Pizzen
-  - 🍕👑 „Pizza Royale" – 200 Pizzen
+- ✅ Badge-System (automatische Vergabe)
+- ✅ Meilenstein-Badges: Erste Pizza · 10er Club · 50er Club · Centurion · Pizza Royale
 - ✅ Badge-Anzeige im Profil
 
 ### Mobile
 - ✅ Mobile Viewport Zoom Fix
-- ✅ Bottom Tab Bar (4 Tabs) + Hamburger Drawer
-- ✅ Navigation Restructure (Profil ins Drawer-Menü)
-- ✅ Scrollbars ausgeblendet (alle Browser, inkl. globaler *::-webkit-scrollbar + overflow-x hidden)
-- ✅ Alle mobilen Zoom-Methoden blockiert (Pinch, Double-Tap, Keyboard)
-- ✅ Center Button Label Alignment Fix (Icon schwebt, Label bleibt auf gleicher Baseline)
-- ✅ Rangliste + Abzeichen zu einer Seite zusammengeführt (Tab-Switcher, Pill-Style)
+- ✅ Bottom Tab Bar + Hamburger Drawer
+- ✅ Navigation Restructure
+- ✅ Scrollbars ausgeblendet
+- ✅ Zoom-Methoden blockiert
+- ✅ Center Button Label Alignment
+- ✅ Rangliste + Abzeichen Tab-Switcher
 
 ---
 
-## Phase 2 – Bewertungssystem ⭐
+## Phase 2 – Bewertungssystem ⭐ (abgeschlossen)
 
-- ✅ Datenbankschema erweitern: `PizzaEntry` um Felder `location`, `pizzaType`, `rating`, `amount`
-- ✅ Eintrag-Formular (Bottom Sheet):
-  - ✅ Mengenwahl (½, 1, 1½, 2)
-  - ✅ Sterne-Bewertung (1–5)
-  - ✅ Pizza-Sorte mit Autocomplete
-  - ✅ Ort / Restaurant mit Autocomplete
-  - ✅ Notiz
-- ✅ Statistik-Seite: Pizzen pro Monat/Jahr + Top Sorten + Top Orte
-- ✅ Avatar-Picker (Emoji) im Profil
-- ✅ Admin: Alle Einträge anzeigen und löschen
-
-### Dropdown-Felder beim Pizza-Eintragen (✅ Umgesetzt)
-- Pizza-Sorte: Autocomplete aus vergangenen Einträgen
-- Ort/Restaurant: Autocomplete aus vergangenen Einträgen
-- Bewertung: Sterne-Auswahl (1-5)
-- Menge: Segmented Control (½, 1, 1½, 2)
+- ✅ Schema-Erweiterung: location, pizzaType, rating, amount
+- ✅ Eintrag-Formular (Bottom Sheet) mit Mengenwahl, Sterne, Autocomplete, Notiz
+- ✅ Statistik-Seite
+- ✅ Avatar-Picker (Emoji)
+- ✅ Admin: Alle Einträge verwalten
 
 - [ ] Historien-Ansicht: alle Einträge mit Details, filterbar nach User
 - [ ] „Beste Pizza" Statistik: höchstbewerteter Eintrag
@@ -81,55 +65,84 @@
 
 ---
 
-## Phase 3 – Polish & Extras ✨
+## Phase 3 – Polish & Extras ✨ (abgeschlossen)
 
-- ✅ PWA-Support (Manifest, Icons, apple-touch-icon, safe area)
-- ✅ Smart Dropdowns: globale Pizza-Sorten & Orte mit Verwaltung im Admin
-- ✅ Pizza-Sharing: mehrere User teilen sich eine Pizza (sessionId, split amount)
-- ✅ Backdating: Datum beim Eintragen wählbar
-- ✅ Build-Version im Profil + /about Seite
-- ✅ Hamburger Drawer zentriert auf Mobile
-- ✅ Profil-Seite auf Mobile zentriert (max-w-lg mx-auto)
-- ✅ Center-Nav-Button: Icon/Label-Überlappung behoben (rounded-full, mb-1 Abstand)
-- ✅ Hamburger Drawer: abgerundete Ecken (rounded-tl-2xl rounded-bl-2xl), lucide-react Icons, Divider vor Abmelden
-- [ ] Dark Mode
-- [ ] Push Notifications: „Zeit für Pizza?" (optional)
-- [ ] Export: eigene Einträge als CSV
-- [ ] Admins können beliebige Einträge bearbeiten (nicht nur löschen)
-
-### Admin-Badges erstellen (⬜ Geplant)
-Admins können manuelle Badges/Abzeichen erstellen und an User vergeben:
-- Badge hat: Emoji, Name, Beschreibung
-- Zwei Typen: automatisch (Meilenstein) und manuell (Admin-vergabe)
-- UI in /admin Panel
-- Schema: Badge-Tabelle mit Typ, manueller Vergabe-Relation
-
-### Merge/Edit PizzaTypeOptions und LocationOptions (⬜ Geplant)
-- Admins können zwei Einträge zusammenführen (z.B. "Salami" + "salami" → "Salami")
+- ✅ PWA-Support (Manifest, Icons, safe area)
+- ✅ Smart Dropdowns: globale Pizza-Sorten & Orte
+- ✅ Pizza-Sharing (sessionId, split amount)
+- ✅ Backdating
+- ✅ Build-Version im Profil + /about
+- ✅ Drawer/Profil Polish
 
 ---
 
-## Phase 4 – Geplant
+## Phase 4 – Security Hardening 🔒 (laufend)
 
-### Statistik-Filter (⬜ Geplant)
-- Filter oben auf /stats: "Nur ich" / "Alle" / individuelle User (Mehrfachauswahl)
-- Alle Charts reagieren auf Filter
-- Admins sehen alle User, Standard-User nur sich + "Gemeinsam"
-- Vergleichs-Chart: Balken nebeneinander pro Monat, je Farbe pro User
-- Filterauswahl in URL: ?users=max,lisa
+### ✅ Umgesetzt (v1.4.0)
+- ✅ Zod-Validierung aller Server-Actions (Amount, Rating, Date, Name, Passwort, Avatar, IDs)
+- ✅ Passwort-Mindestlänge 12 Zeichen
+- ✅ `/setup`-Härtung: `SETUP_ENABLED`-Flag + Admin-Exists-Check + Transaction gegen Race
+- ✅ selectedUserIds serverseitig gegen DB validiert
+- ✅ Brute-Force-Schutz: DB-basierte Login-Attempts, Email- + IP-Lockout, exponentielles Delay, Timing-Attack-resistent (Dummy-bcrypt bei unbekannter Email)
+- ✅ Litestream-Sidecar (optional, per `--profile backup`)
+- ✅ Prisma-Indices auf PizzaEntry(userId, date, sessionId)
+- ✅ Dockerfile: `--chown` konsistent, HEALTHCHECK im Image
+- ✅ docker-compose: mem_limit, cpus, log-rotation
+- ✅ Health-Endpoint prüft DB-Konnektivität
+- ✅ Avatar-Whitelist (Zeichen-Filter)
 
-### Admin-Badges manuell erstellen (⬜ Geplant)
-- Admins können Badges mit Emoji, Name, Beschreibung erstellen
-- Zwei Typen: automatisch (Meilenstein) und manuell (Admin-Vergabe)
-- UI im Admin-Panel
+### 🔴 Hoch – Vor Public-Exposure
+- [ ] **CSP-Header + HSTS** in `next.config.ts` `headers()` einbauen
+- [ ] **Cookie-Hardening** explizit in `auth.ts`: `sameSite: "lax"`, `secure: true`, `httpOnly: true` statt NextAuth-Defaults
+- [ ] **NEXTAUTH_URL** im Betrieb auf echte Tunnel-Domain setzen + dokumentieren
+- [ ] **Login-Route** zusätzlich per Cloudflare Rate-Limiting-Rule schützen (5/min/IP)
+- [ ] **Audit-Log-Modell** für Admin-Aktionen + Login-Events (neue Prisma-Tabelle `AuditLog`)
 
-### Merge/Edit für Listen-Einträge (⬜ Geplant)
-- Admins können zwei Sorte/Ort-Einträge zusammenführen
-- z.B. "salami" + "Salami" → "Salami" (alle bestehenden Einträge werden umgeschrieben)
+### 🟠 Mittel
+- [ ] **Foreign Keys** für `PizzaTypeOption.createdBy` / `LocationOption.createdBy` (SetNull bei User-Delete)
+- [ ] **amount als Int** (in Zehnteln) statt Float – eliminiert Floating-Point-Summen-Fehler
+- [ ] **Email-Normalisierung** beim User-Create + Migration existierender User auf lowercase
+- [ ] **Dockerfile Alpine pinnen** (`node:20-alpine3.19`) für reproduzierbare Builds
+- [ ] **Passwort-Zxcvbn-Check** im Frontend (Stärke-Indikator)
+- [ ] **Account-Freigabe durch Admin** nach X Fehlversuchen (manuelles Unlock)
+- [ ] **2FA (TOTP)** optional pro User
+- [ ] **Content-Length / Body-Size-Limit** für Server-Actions konfigurieren
 
-### Dark Mode (⬜ Geplant)
-### PWA Push Notifications (⬜ Geplant)
-### Statistik Export als CSV (⬜ Geplant)
+### 🟡 Niedrig / Ops
+- [ ] **Backup-Test** dokumentieren (Litestream restore drill)
+- [ ] **Update-Alerting** über ntfy bei verfügbaren Releases
+- [ ] **Prometheus-Metriken** endpoint `/api/metrics` (requests, login_fails, db_size)
+- [ ] **Structured Logging** (pino) statt `console.log`
+- [ ] **CI-Pipeline**: typecheck + lint + build bei jedem PR
+
+---
+
+## Phase 5 – Features (geplant)
+
+### Statistik-Filter
+- [ ] Filter oben auf /stats: „Nur ich" / „Alle" / individuelle User (Mehrfachauswahl)
+- [ ] Alle Charts reagieren auf Filter
+- [ ] Admins sehen alle User, Standard-User nur sich + „Gemeinsam"
+- [ ] Vergleichs-Chart: Balken nebeneinander pro Monat, je Farbe pro User
+- [ ] Filterauswahl in URL: `?users=max,lisa`
+
+### Admin-Badges
+- [ ] Admins können manuelle Badges erstellen (Emoji, Name, Beschreibung)
+- [ ] Zwei Typen: automatisch (Meilenstein) und manuell (Admin-Vergabe)
+- [ ] UI im Admin-Panel
+- [ ] Schema: Badge-Tabelle mit Typ + Vergabe-Relation
+
+### Merge/Edit Optionen
+- [ ] Admins können Sorte/Ort-Einträge zusammenführen („salami" + „Salami" → „Salami")
+- [ ] Alle bestehenden Einträge werden umgeschrieben
+
+### QoL
+- [ ] Dark Mode
+- [ ] PWA Push Notifications („Zeit für Pizza?")
+- [ ] CSV/JSON-Export eigener Einträge
+- [ ] Admins können beliebige Einträge bearbeiten (nicht nur löschen)
+- [ ] QR-Code für Shared-Session (Mitesser scannt und bestätigt)
+- [ ] Streak-Light: „3 Pizzen diese Woche"-Badge
 
 ---
 
@@ -138,14 +151,18 @@ Admins können manuelle Badges/Abzeichen erstellen und an User vergeben:
 - [ ] LXC auf Proxmox erstellen (Debian, 512 MB RAM, 8 GB Disk)
 - [ ] Docker + Docker Compose im LXC installieren
 - [ ] Volume für SQLite anlegen: `/data/pizza_count/db/`
-- [ ] `.env` befüllen (AUTH_SECRET generieren)
+- [ ] `.env` befüllen (`AUTH_SECRET` generieren, `NEXTAUTH_URL` setzen)
 - [ ] Cloudflare Tunnel einrichten → `pizza.maxds.me`
-- [ ] Synology Backup-Job für SQLite-Datei einrichten
+- [ ] Nach Admin-Erstellung `SETUP_ENABLED=false` setzen + Container neu starten
+- [ ] Litestream-Profile aktivieren: `docker compose --profile backup up -d`
+- [ ] Cloudflare Rate-Limiting-Rule für `/api/auth/*` einrichten
+- [ ] Restore-Drill durchspielen (einmalig, bevor man sich drauf verlässt)
 
 ---
 
 ## Bekannte Einschränkungen / Entscheidungen
 
-- **Kein Pizza-Streak**: wurde bewusst weggelassen (Pizza ist kein tägliches Ritual)
-- **SQLite statt PostgreSQL**: ausreichend für 2 User, kein extra Datenbankserver nötig
+- **Kein Pizza-Streak**: bewusst weggelassen (Pizza ist kein tägliches Ritual)
+- **SQLite statt PostgreSQL**: ausreichend für <20 User, kein extra DB-Server
 - **Halbe Pizzen**: werden als 0.5 gespeichert, formatiert als „½"
+- **Kein Zero-Trust-Frontend**: eigener Login mit Brute-Force-Schutz + Lockout, Cloudflare Access bleibt optional

@@ -1,0 +1,26 @@
+# Litestream config – SQLite continuous backup
+# Docs: https://litestream.io/reference/config/
+#
+# Aktivieren mit:  docker compose --profile backup up -d
+#
+# ENV-Variablen (in .env):
+#   LITESTREAM_REPLICA_URL      z.B. s3://mein-bucket/pizza
+#   LITESTREAM_ACCESS_KEY_ID    S3/B2 Access Key
+#   LITESTREAM_SECRET_ACCESS_KEY S3/B2 Secret
+#   LITESTREAM_REGION           z.B. eu-central-1  (bei B2 beliebig, z.B. us-west-000)
+#   LITESTREAM_ENDPOINT         leer bei AWS, bei Backblaze: https://s3.us-west-000.backblazeb2.com
+#
+# Empfehlung: Backblaze B2 (günstig, S3-kompatibel).
+
+dbs:
+  - path: /data/db/pizza.db
+    replicas:
+      - type: s3
+        url: ${LITESTREAM_REPLICA_URL}
+        endpoint: ${LITESTREAM_ENDPOINT}
+        region: ${LITESTREAM_REGION}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        retention: 168h # 7 Tage
+        snapshot-interval: 24h
+        sync-interval: 10s
